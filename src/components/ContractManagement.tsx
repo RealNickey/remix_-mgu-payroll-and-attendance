@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { RiFilePaperLine, RiFileAddLine, RiSearchLine, RiFileList3Line, RiAlertLine } from '@remixicon/react';
 import { toast } from 'sonner';
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface ContractManagementProps {
   onNavigateToEmployees: () => void;
@@ -253,15 +254,13 @@ export const ContractManagement = ({ onNavigateToEmployees }: ContractManagement
                     <div className="grid grid-cols-2 gap-3">
                       <Field data-invalid={startError ? "true" : undefined}>
                         <FieldLabel htmlFor="startDate">Start Date</FieldLabel>
-                        <Input
+                        <DatePicker
                           id="startDate"
-                          type="date"
                           value={startDate}
-                          onChange={(e) => {
-                            setStartDate(e.target.value);
+                          onChange={(val) => {
+                            setStartDate(val);
                             setStartError(false);
                           }}
-                          aria-invalid={startError ? "true" : undefined}
                         />
                         {startError && <FieldError>Required.</FieldError>}
                       </Field>
@@ -295,15 +294,13 @@ export const ContractManagement = ({ onNavigateToEmployees }: ContractManagement
 
                     <Field data-invalid={goDateError ? "true" : undefined}>
                       <FieldLabel htmlFor="goDate">Order Issue Date</FieldLabel>
-                      <Input
+                      <DatePicker
                         id="goDate"
-                        type="date"
                         value={goDate}
-                        onChange={(e) => {
-                          setGoDate(e.target.value);
+                        onChange={(val) => {
+                          setGoDate(val);
                           setGoDateError(false);
                         }}
-                        aria-invalid={goDateError ? "true" : undefined}
                       />
                       {goDateError && <FieldError>Order Issue Date is required.</FieldError>}
                     </Field>
