@@ -1,12 +1,13 @@
-import { useState } from 'react';
-import { MguDbProvider } from '@/lib/db';
-import { useTheme } from '@/components/theme-provider';
-import { Toaster } from '@/components/ui/sonner';
-import { EmployeeProfiles } from '@/components/EmployeeProfiles';
-import { ContractManagement } from '@/components/ContractManagement';
-import { AttendanceEntry } from '@/components/AttendanceEntry';
-import { DisbursementRecords } from '@/components/DisbursementRecords';
-import { SettingsWorkspace } from '@/components/SettingsWorkspace';
+import { useState } from "react"
+import { MguDbProvider } from "@/lib/db"
+import { useTheme } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
+import { EmployeeProfiles } from "@/components/EmployeeProfiles"
+import { ContractManagement } from "@/components/ContractManagement"
+import { AttendanceEntry } from "@/components/AttendanceEntry"
+import { DisbursementRecords } from "@/components/DisbursementRecords"
+import { SettingsWorkspace } from "@/components/SettingsWorkspace"
+import { AnalyticsDashboard } from "@/components/AnalyticsDashboard"
 import {
   RiCalendarCheckLine,
   RiUserLine,
@@ -18,76 +19,91 @@ import {
   RiSunLine,
   RiMoonLine,
   RiShieldCheckLine,
-  RiTerminalBoxLine
-} from '@remixicon/react';
+  RiTerminalBoxLine,
+  RiBarChartLine,
+} from "@remixicon/react"
 
-type WorkspaceType = 'attendance' | 'employees' | 'contracts' | 'disbursement' | 'settings';
+type WorkspaceType =
+  | "analytics"
+  | "attendance"
+  | "employees"
+  | "contracts"
+  | "disbursement"
+  | "settings"
 
 export function App() {
-  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceType>('attendance');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const [activeWorkspace, setActiveWorkspace] =
+    useState<WorkspaceType>("attendance")
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const { theme, setTheme } = useTheme()
 
   // Workspace labels and icons
   const workspaces = [
-    { id: 'attendance', label: 'Attendance Entry', icon: RiCalendarCheckLine },
-    { id: 'employees', label: 'Employee Profiles', icon: RiUserLine },
-    { id: 'contracts', label: 'Contract Management', icon: RiFileTextLine },
-    { id: 'disbursement', label: 'Disbursement Records', icon: RiHandCoinLine },
-    { id: 'settings', label: 'Settings', icon: RiSettings4Line }
-  ] as const;
+    { id: "analytics", label: "Analytics & Insights", icon: RiBarChartLine },
+    { id: "attendance", label: "Attendance Entry", icon: RiCalendarCheckLine },
+    { id: "employees", label: "Employee Profiles", icon: RiUserLine },
+    { id: "contracts", label: "Contract Management", icon: RiFileTextLine },
+    { id: "disbursement", label: "Disbursement Records", icon: RiHandCoinLine },
+    { id: "settings", label: "Settings", icon: RiSettings4Line },
+  ] as const
 
   const renderActiveWorkspace = () => {
     switch (activeWorkspace) {
-      case 'attendance':
+      case "analytics":
+        return <AnalyticsDashboard />
+      case "attendance":
         return (
           <AttendanceEntry
-            onNavigateToEmployees={() => setActiveWorkspace('employees')}
-            onNavigateToContracts={() => setActiveWorkspace('contracts')}
+            onNavigateToEmployees={() => setActiveWorkspace("employees")}
+            onNavigateToContracts={() => setActiveWorkspace("contracts")}
           />
-        );
-      case 'employees':
-        return <EmployeeProfiles />;
-      case 'contracts':
+        )
+      case "employees":
+        return <EmployeeProfiles />
+      case "contracts":
         return (
           <ContractManagement
-            onNavigateToEmployees={() => setActiveWorkspace('employees')}
+            onNavigateToEmployees={() => setActiveWorkspace("employees")}
           />
-        );
-      case 'disbursement':
-        return <DisbursementRecords />;
-      case 'settings':
-        return <SettingsWorkspace />;
+        )
+      case "disbursement":
+        return <DisbursementRecords />
+      case "settings":
+        return <SettingsWorkspace />
       default:
-        return <AttendanceEntry onNavigateToEmployees={() => {}} onNavigateToContracts={() => {}} />;
+        return (
+          <AttendanceEntry
+            onNavigateToEmployees={() => {}}
+            onNavigateToContracts={() => {}}
+          />
+        )
     }
-  };
+  }
 
   const getWorkspaceTitle = () => {
-    return workspaces.find(w => w.id === activeWorkspace)?.label || '';
-  };
+    return workspaces.find((w) => w.id === activeWorkspace)?.label || ""
+  }
 
   return (
     <MguDbProvider>
-      <div className="flex h-screen overflow-hidden bg-background text-foreground font-mono transition-colors duration-300">
-        
+      <div className="flex h-screen overflow-hidden bg-background font-mono text-foreground transition-colors duration-300">
         {/* SIDE BAR NAVIGATION */}
         <aside
-          className={`flex flex-col bg-card border-r border-border/80 transition-all duration-300 ${
-            sidebarCollapsed ? 'w-16' : 'w-64'
+          className={`flex flex-col border-r border-border/80 bg-card transition-all duration-300 ${
+            sidebarCollapsed ? "w-16" : "w-64"
           } shrink-0`}
         >
           {/* Logo / Header */}
-          <div className="h-16 flex items-center px-4 border-b border-border/80 gap-3 overflow-hidden select-none">
-            <div className="p-1.5 bg-primary/10 text-primary rounded-lg shrink-0">
+          <div className="flex h-16 items-center gap-3 overflow-hidden border-b border-border/80 px-4 select-none">
+            <div className="shrink-0 rounded-lg bg-primary/10 p-1.5 text-primary">
               <RiShieldCheckLine className="size-5" />
             </div>
             {!sidebarCollapsed && (
               <div className="flex flex-col">
-                <span className="font-heading font-bold text-xs uppercase tracking-wider text-foreground">
+                <span className="font-heading text-xs font-bold tracking-wider text-foreground uppercase">
                   Admin Portal
                 </span>
-                <span className="text-[10px] text-muted-foreground font-medium uppercase">
+                <span className="text-[10px] font-medium text-muted-foreground uppercase">
                   M.G. University
                 </span>
               </div>
@@ -95,69 +111,92 @@ export function App() {
           </div>
 
           {/* Navigation Items */}
-          <nav className="flex-1 py-4 px-2 flex flex-col gap-1.5 overflow-y-auto">
+          <nav className="flex flex-1 flex-col gap-1.5 overflow-y-auto px-2 py-4">
             {workspaces.map((ws) => {
-              const Icon = ws.icon;
-              const isActive = activeWorkspace === ws.id;
+              const Icon = ws.icon
+              const isActive = activeWorkspace === ws.id
 
               return (
                 <button
                   key={ws.id}
                   onClick={() => setActiveWorkspace(ws.id)}
                   title={sidebarCollapsed ? ws.label : undefined}
-                  className={`w-full flex items-center rounded-md p-2 text-sm transition-all relative group ${
+                  className={`group relative flex w-full items-center rounded-md p-2 text-sm transition-all ${
                     isActive
-                      ? 'bg-primary text-primary-foreground font-bold shadow-sm'
-                      : 'hover:bg-muted/80 text-muted-foreground hover:text-foreground'
+                      ? "bg-primary font-bold text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                   }`}
                 >
-                  <Icon className={`size-5 shrink-0 ${sidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
-                  {!sidebarCollapsed && <span className="truncate">{ws.label}</span>}
-                  
+                  <Icon
+                    className={`size-5 shrink-0 ${sidebarCollapsed ? "mx-auto" : "mr-3"}`}
+                  />
+                  {!sidebarCollapsed && (
+                    <span className="truncate">{ws.label}</span>
+                  )}
+
                   {/* Tooltip on collapsed state */}
                   {sidebarCollapsed && (
-                    <div className="absolute left-full ml-3 px-2 py-1 bg-popover text-popover-foreground text-xs rounded border border-border/80 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
+                    <div className="pointer-events-none absolute left-full z-50 ml-3 rounded border border-border/80 bg-popover px-2 py-1 text-xs whitespace-nowrap text-popover-foreground opacity-0 transition-opacity group-hover:opacity-100">
                       {ws.label}
                     </div>
                   )}
                 </button>
-              );
+              )
             })}
           </nav>
 
           {/* Footer Area */}
-          <div className="p-4 border-t border-border/80 flex items-center justify-center select-none overflow-hidden h-14 shrink-0">
+          <div className="flex h-16 shrink-0 flex-col items-center justify-center gap-1 overflow-hidden border-t border-border/80 p-3 text-center">
             {!sidebarCollapsed ? (
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                AD BIII SECTION
-              </span>
+              <>
+                <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                  AD BIII SECTION
+                </span>
+                <span className="text-[9px] text-muted-foreground/70">
+                  Made by{" "}
+                  <a
+                    href="https://www.aswinjim.me/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-primary/80 transition-colors hover:text-primary hover:underline"
+                  >
+                    Aswin
+                  </a>
+                </span>
+              </>
             ) : (
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                AD
-              </span>
+              <a
+                href="https://www.aswinjim.me/"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Made by Aswin"
+                className="text-[9px] font-bold tracking-wider text-muted-foreground hover:text-foreground"
+              >
+                AJ
+              </a>
             )}
           </div>
         </aside>
 
         {/* MAIN BODY */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           {/* HEADER BAR */}
-          <header className="h-16 border-b border-border/85 bg-card/60 backdrop-blur-md px-6 flex items-center justify-between shrink-0 select-none z-10">
+          <header className="z-10 flex h-16 shrink-0 items-center justify-between border-b border-border/85 bg-card/60 px-6 backdrop-blur-md select-none">
             <div className="flex items-center gap-4">
               {/* Collapse Sidebar Button */}
               <button
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all"
-                title={sidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+                className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
+                title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                aria-label={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
               >
                 {sidebarCollapsed ? (
-                  <RiMenuUnfoldLine className="size-5" />
+                  <RiMenuUnfoldLine className="size-5" aria-hidden="true" />
                 ) : (
-                  <RiMenuFoldLine className="size-5" />
+                  <RiMenuFoldLine className="size-5" aria-hidden="true" />
                 )}
               </button>
-              <h2 className="font-heading font-bold text-base md:text-lg text-foreground tracking-tight">
+              <h2 className="font-heading text-base font-bold tracking-tight text-foreground md:text-lg">
                 {getWorkspaceTitle()}
               </h2>
             </div>
@@ -165,49 +204,49 @@ export function App() {
             {/* Right details */}
             <div className="flex items-center gap-4">
               {/* System Online Badge */}
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-600 rounded-full border border-emerald-500/10 dark:bg-emerald-500/20 dark:text-emerald-400">
+              <div className="hidden items-center gap-2 rounded-full border border-emerald-500/10 bg-emerald-500/10 px-3 py-1 text-emerald-600 sm:flex dark:bg-emerald-500/20 dark:text-emerald-400">
                 <span className="relative flex size-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
                 </span>
-                <span className="text-[10px] font-bold tracking-wider uppercase font-mono">
+                <span className="font-mono text-[10px] font-bold tracking-wider uppercase">
                   MGU System Online
                 </span>
               </div>
 
               {/* Section Tag */}
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground border-r pr-4 border-border/60">
-                <RiTerminalBoxLine className="size-4" />
+              <div className="flex items-center gap-1.5 border-r border-border/60 pr-4 text-[11px] font-semibold text-muted-foreground">
+                <RiTerminalBoxLine className="size-4" aria-hidden="true" />
                 <span>AD BIII SECTION</span>
               </div>
 
               {/* Theme Toggle Button */}
               <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="rounded-full p-2 text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
                 title="Toggle Theme (or Press 'd')"
+                aria-label="Toggle Theme"
               >
-                {theme === 'dark' ? (
-                  <RiSunLine className="size-4 text-amber-400 animate-pulse" />
+                {theme === "dark" ? (
+                  <RiSunLine className="size-4 animate-pulse text-amber-400" aria-hidden="true" />
                 ) : (
-                  <RiMoonLine className="size-4" />
+                  <RiMoonLine className="size-4" aria-hidden="true" />
                 )}
               </button>
             </div>
           </header>
 
           {/* WORKSPACE VIEW PORT */}
-          <main className="flex-1 overflow-y-auto p-6 bg-background">
+          <main className="flex-1 overflow-y-auto bg-background p-6">
             {renderActiveWorkspace()}
           </main>
         </div>
-
       </div>
-      
+
       {/* Toast Notification Container */}
       <Toaster position="bottom-right" richColors />
     </MguDbProvider>
-  );
+  )
 }
 
-export default App;
+export default App

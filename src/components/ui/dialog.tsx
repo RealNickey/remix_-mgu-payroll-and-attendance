@@ -68,8 +68,7 @@ function DialogContent({
               />
             }
           >
-            <RiCloseLine
-            />
+            <RiCloseLine />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}

@@ -1,15 +1,41 @@
-import { useState, useEffect } from 'react';
-import { useMguDb } from '@/lib/db';
-import { getContractStatus, computeEndDate } from '@/lib/payrollUtils';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Field, FieldGroup, FieldLabel, FieldError } from '@/components/ui/field';
-import { Badge } from '@/components/ui/badge';
-import { Empty } from '@/components/ui/empty';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useState } from "react"
+import { useMguDb } from "@/lib/db"
+import { getContractStatus } from "@/lib/payrollUtils"
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox"
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldError,
+} from "@/components/ui/field"
+import { EmployeeAvatar } from "@/components/ui/employee-avatar"
+import { Badge } from "@/components/ui/badge"
+import { Empty } from "@/components/ui/empty"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,188 +46,284 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { RiFilePaperLine, RiFileAddLine, RiSearchLine, RiFileList3Line, RiAlertLine } from '@remixicon/react';
-import { toast } from 'sonner';
-import { DatePicker } from '@/components/ui/date-picker';
+} from "@/components/ui/alert-dialog"
+import {
+  RiFilePaperLine,
+  RiFileAddLine,
+  RiSearchLine,
+  RiFileList3Line,
+  RiAlertLine,
+} from "@remixicon/react"
+import { toast } from "sonner"
+import { DatePicker } from "@/components/ui/date-picker"
+import { DatePickerWithRange } from "@/components/ui/date-range-picker"
+import type { DateRange } from "react-day-picker"
+import { formatDateKey } from "@/lib/payrollUtils"
 
 interface ContractManagementProps {
-  onNavigateToEmployees: () => void;
+  onNavigateToEmployees: () => void
 }
 
-export const ContractManagement = ({ onNavigateToEmployees }: ContractManagementProps) => {
-  const { employees, contracts, addContract, voidContract, saveContracts } = useMguDb();
+export const ContractManagement = ({
+  onNavigateToEmployees,
+}: ContractManagementProps) => {
+  const { employees, contracts, addContract, voidContract, saveContracts } =
+    useMguDb()
 
   // Form states
-  const [employeeId, setEmployeeId] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [goNumber, setGoNumber] = useState('');
-  const [goDate, setGoDate] = useState('');
-  const [computedEnd, setComputedEnd] = useState('');
+  const [employeeId, setEmployeeId] = useState("")
+  const [contractRange, setContractRange] = useState<DateRange | undefined>()
+  const [goNumber, setGoNumber] = useState("")
+  const [goDate, setGoDate] = useState("")
 
   // Search filter
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("")
 
   // Validation
-  const [empError, setEmpError] = useState(false);
-  const [startError, setStartError] = useState(false);
-  const [goError, setGoError] = useState(false);
-  const [goDateError, setGoDateError] = useState(false);
+  const [empError, setEmpError] = useState(false)
+  const [rangeError, setRangeError] = useState(false)
+  const [goError, setGoError] = useState(false)
+  const [goDateError, setGoDateError] = useState(false)
 
-  // Compute end date when start date changes
-  useEffect(() => {
-    if (startDate) {
-      setComputedEnd(computeEndDate(startDate));
-    } else {
-      setComputedEnd('');
+  const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === "Enter") {
+      const activeElement = document.activeElement
+      if (!activeElement) return
+
+      const tagName = activeElement.tagName
+      const type = (activeElement as HTMLInputElement).type
+
+      if (tagName === "TEXTAREA" || type === "submit") {
+        return
+      }
+
+      const isInput = tagName === "INPUT"
+      const isSelectTrigger =
+        activeElement.getAttribute("data-slot") === "select-trigger"
+      const isDatePicker =
+        tagName === "BUTTON" &&
+        activeElement.classList.contains("h-9") &&
+        activeElement.classList.contains("w-full") &&
+        activeElement.classList.contains("justify-start")
+
+      if (isInput || isSelectTrigger || isDatePicker) {
+        const isExpanded = activeElement.getAttribute("aria-expanded") === "true"
+        if (isExpanded) {
+          return
+        }
+
+        const nameAttr = activeElement.getAttribute("name")
+        if (nameAttr === "employee-select" && !employeeId) {
+          return
+        }
+        if (activeElement.classList.contains("justify-start")) {
+          const idAttr = activeElement.getAttribute("id")
+          if (idAttr === "goDate") {
+            if (!goDate) return
+          } else {
+            if (!contractRange?.from || !contractRange?.to) return
+          }
+        }
+
+        e.preventDefault()
+
+        const form = e.currentTarget
+        const selector =
+          'input:not([disabled]):not([type="hidden"]), button[data-slot="select-trigger"]:not([disabled]), button.h-9.w-full.justify-start:not([disabled])'
+        const fields = Array.from(form.querySelectorAll<HTMLElement>(selector))
+
+        const currentIndex = fields.indexOf(activeElement as HTMLElement)
+        if (currentIndex > -1 && currentIndex < fields.length - 1) {
+          const nextField = fields[currentIndex + 1]
+          nextField.focus()
+          if (nextField instanceof HTMLInputElement && nextField.type === "text") {
+            nextField.select()
+          }
+        } else if (currentIndex === fields.length - 1) {
+          form.requestSubmit()
+        }
+      }
     }
-  }, [startDate]);
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
-    let hasError = false;
+    let hasError = false
     if (!employeeId) {
-      setEmpError(true);
-      hasError = true;
+      setEmpError(true)
+      hasError = true
     } else {
-      setEmpError(false);
+      setEmpError(false)
     }
 
-    if (!startDate) {
-      setStartError(true);
-      hasError = true;
+    if (!contractRange?.from || !contractRange?.to) {
+      setRangeError(true)
+      hasError = true
     } else {
-      setStartError(false);
+      setRangeError(false)
     }
 
     if (!goNumber.trim()) {
-      setGoError(true);
-      hasError = true;
+      setGoError(true)
+      hasError = true
     } else {
-      setGoError(false);
+      setGoError(false)
     }
 
     if (!goDate) {
-      setGoDateError(true);
-      hasError = true;
+      setGoDateError(true)
+      hasError = true
     } else {
-      setGoDateError(false);
+      setGoDateError(false)
     }
 
     if (hasError) {
-      toast.error('Please fill in all required fields.');
-      return;
+      toast.error("Please fill in all required fields.")
+      return
     }
 
-    const previousContracts = [...contracts];
-    addContract(employeeId, startDate, goNumber.trim(), goDate);
-    const emp = employees.find(e => e.id === employeeId);
-    toast.success(`Service contract issued for ${emp?.name || 'employee'}.`, {
+    const previousContracts = [...contracts]
+    addContract(
+      employeeId,
+      formatDateKey(contractRange!.from!),
+      formatDateKey(contractRange!.to!),
+      goNumber.trim(),
+      goDate
+    )
+    const emp = employees.find((e) => e.id === employeeId)
+    toast.success(`Service contract issued for ${emp?.name || "employee"}.`, {
       action: {
         label: "Undo",
-        onClick: () => saveContracts(previousContracts)
-      }
-    });
+        onClick: () => saveContracts(previousContracts),
+      },
+    })
 
     // Reset Form
-    setEmployeeId('');
-    setStartDate('');
-    setGoNumber('');
-    setGoDate('');
-    setComputedEnd('');
-  };
+    setEmployeeId("")
+    setContractRange(undefined)
+    setGoNumber("")
+    setGoDate("")
+  }
 
   const handleVoid = (id: string, goNo: string) => {
-    const previousContracts = [...contracts];
-    voidContract(id);
+    const previousContracts = [...contracts]
+    voidContract(id)
     toast.success(`Contract ${goNo} has been voided.`, {
       action: {
         label: "Undo",
-        onClick: () => saveContracts(previousContracts)
-      }
-    });
-  };
+        onClick: () => saveContracts(previousContracts),
+      },
+    })
+  }
 
   // Get employee name for a contract row
   const getEmployeeNameAndCategory = (empId: string) => {
-    const emp = employees.find(e => e.id === empId);
+    const emp = employees.find((e) => e.id === empId)
     if (!emp) {
-      return { name: 'Unknown Employee', category: '', initials: '?' };
+      return { name: "Unknown Employee", category: "", initials: "?" }
     }
-    return { name: emp.name, category: emp.category };
-  };
+    return { name: emp.name, category: emp.category }
+  }
 
   // Live status badge styling
   const getStatusBadge = (start: string, end: string) => {
-    const status = getContractStatus(start, end);
+    const status = getContractStatus(start, end)
     switch (status) {
-      case 'Active':
-        return <Badge className="bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/20">Active</Badge>;
-      case 'Upcoming':
-        return <Badge className="bg-sky-500/10 text-sky-600 dark:bg-sky-500/20 dark:text-sky-400 border border-sky-500/20">Upcoming</Badge>;
-      case 'Expired':
-        return <Badge className="bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-500/20">Expired</Badge>;
+      case "Active":
+        return (
+          <Badge className="border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+            Active
+          </Badge>
+        )
+      case "Upcoming":
+        return (
+          <Badge className="border border-sky-500/20 bg-sky-500/10 text-sky-600 dark:bg-sky-500/20 dark:text-sky-400">
+            Upcoming
+          </Badge>
+        )
+      case "Expired":
+        return (
+          <Badge className="border border-rose-500/20 bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">
+            Expired
+          </Badge>
+        )
       default:
-        return <Badge variant="secondary">Unknown</Badge>;
+        return <Badge variant="secondary">Unknown</Badge>
     }
-  };
+  }
 
   // Filtered contracts
-  const filteredContracts = contracts.filter(c => {
-    const q = searchQuery.toLowerCase();
-    const empDetails = getEmployeeNameAndCategory(c.employeeId);
+  const filteredContracts = contracts.filter((c) => {
+    const q = searchQuery.toLowerCase()
+    const empDetails = getEmployeeNameAndCategory(c.employeeId)
     return (
       empDetails.name.toLowerCase().includes(q) ||
       empDetails.category.toLowerCase().includes(q) ||
       c.goNumber.toLowerCase().includes(q)
-    );
-  });
+    )
+  })
 
   // KPI calculations
-  const totalContracts = contracts.length;
-  const activeContractsCount = contracts.filter(c => getContractStatus(c.startDate, c.endDate) === 'Active').length;
+  const totalContracts = contracts.length
+  const activeContractsCount = contracts.filter(
+    (c) => getContractStatus(c.startDate, c.endDate) === "Active"
+  ).length
 
   return (
     <div className="flex flex-col gap-6">
       {/* Prerequisite warning: No employees */}
       {employees.length === 0 ? (
-        <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive dark:bg-destructive/20 dark:border-destructive/30">
+        <Alert
+          variant="destructive"
+          className="border-destructive/20 bg-destructive/10 text-destructive dark:border-destructive/30 dark:bg-destructive/20"
+        >
           <RiAlertLine className="size-5" />
-          <AlertTitle className="font-heading font-bold text-sm">No Employees Registered</AlertTitle>
+          <AlertTitle className="font-heading text-sm font-bold">
+            No Employees Registered
+          </AlertTitle>
           <AlertDescription className="mt-1 text-xs">
-            You must register at least one employee in the system before you can issue service contracts.
+            You must register at least one employee in the system before you can
+            issue service contracts.
             <Button
               variant="link"
               onClick={onNavigateToEmployees}
-              className="text-destructive underline p-0 ml-1 h-auto font-medium align-baseline"
+              className="ml-1 h-auto p-0 align-baseline font-medium text-destructive underline"
             >
               Go to Employee Profiles workspace.
             </Button>
           </AlertDescription>
         </Alert>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {/* KPI Summary Cards */}
           <Card className="border-border/60 bg-card/40">
-            <CardContent className="pt-6 flex items-center justify-between">
+            <CardContent className="flex items-center justify-between pt-6">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Contracts</p>
-                <h3 className="text-3xl font-bold font-heading mt-1 font-mono">{totalContracts}</h3>
+                <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                  Total Contracts
+                </p>
+                <h3 className="mt-1 font-heading font-mono text-3xl font-bold">
+                  {totalContracts}
+                </h3>
               </div>
-              <div className="p-3 bg-primary/10 rounded-lg text-primary">
+              <div className="rounded-lg bg-primary/10 p-3 text-primary">
                 <RiFileList3Line className="size-6" />
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-border/60 bg-card/40">
-            <CardContent className="pt-6 flex items-center justify-between">
+            <CardContent className="flex items-center justify-between pt-6">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active Contracts</p>
-                <h3 className="text-3xl font-bold font-heading mt-1 font-mono text-emerald-500">{activeContractsCount}</h3>
+                <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                  Active Contracts
+                </p>
+                <h3 className="mt-1 font-heading font-mono text-3xl font-bold text-emerald-500">
+                  {activeContractsCount}
+                </h3>
               </div>
-              <div className="p-3 bg-emerald-500/10 rounded-lg text-emerald-500">
+              <div className="rounded-lg bg-emerald-500/10 p-3 text-emerald-500">
                 <RiFilePaperLine className="size-6" />
               </div>
             </CardContent>
@@ -215,81 +337,92 @@ export const ContractManagement = ({ onNavigateToEmployees }: ContractManagement
           <div className="w-full lg:w-1/3">
             <Card className="border-border/60 bg-card/50 backdrop-blur-md">
               <CardHeader>
-                <CardTitle className="font-heading text-lg font-bold flex items-center gap-2">
-                  <RiFileAddLine className="text-primary size-5" />
-                  Issue 90-Day Contract
+                <CardTitle className="flex items-center gap-2 font-heading text-lg font-bold">
+                  <RiFileAddLine className="size-5 text-primary" />
+                  Issue Service Contract
                 </CardTitle>
                 <CardDescription>
-                  Create a standard 90-day contract for an employee under a Government Order.
+                  Create a service contract for an employee under a Government
+                  Order.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-4" onKeyDown={handleFormKeyDown}>
                   <FieldGroup>
                     <Field data-invalid={empError ? "true" : undefined}>
                       <FieldLabel>Select Employee</FieldLabel>
-                      <Select
+                      <Combobox
                         value={employeeId}
                         onValueChange={(val) => {
-                          setEmployeeId(val ?? '');
-                          setEmpError(false);
+                          setEmployeeId(val as string)
+                          setEmpError(false)
                         }}
+                        itemToStringLabel={(val) => {
+                          if (!val) return ""
+                          const emp = employees.find((e) => e.id === val)
+                          return emp ? emp.name : ""
+                        }}
+                        itemToStringValue={(val) => val as string}
                       >
-                        <SelectTrigger className="w-full" aria-invalid={empError ? "true" : undefined}>
-                          <SelectValue placeholder="Choose employee..." />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          <SelectGroup>
-                            {employees.map(emp => (
-                              <SelectItem key={emp.id} value={emp.id}>
-                                {emp.name} ({emp.category})
-                              </SelectItem>
+                        <ComboboxInput placeholder="Choose employee…" name="employee-select" aria-label="Select employee" autoComplete="off" />
+                        <ComboboxContent>
+                          <ComboboxEmpty>No employee found.</ComboboxEmpty>
+                          <ComboboxList>
+                            {employees.map((emp) => (
+                              <ComboboxItem
+                                key={emp.id}
+                                value={emp.id}
+                                className="flex items-center gap-2"
+                              >
+                                <EmployeeAvatar employee={emp} size="sm" />
+                                <span>
+                                  {emp.name} ({emp.category})
+                                </span>
+                              </ComboboxItem>
                             ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                      {empError && <FieldError>Employee is required.</FieldError>}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                      {empError && (
+                        <FieldError>Employee is required.</FieldError>
+                      )}
                     </Field>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <Field data-invalid={startError ? "true" : undefined}>
-                        <FieldLabel htmlFor="startDate">Start Date</FieldLabel>
-                        <DatePicker
-                          id="startDate"
-                          value={startDate}
-                          onChange={(val) => {
-                            setStartDate(val);
-                            setStartError(false);
-                          }}
-                        />
-                        {startError && <FieldError>Required.</FieldError>}
-                      </Field>
-
-                      <Field>
-                        <FieldLabel htmlFor="endDate">End Date (Auto)</FieldLabel>
-                        <Input
-                          id="endDate"
-                          value={computedEnd ? new Date(computedEnd).toLocaleDateString('en-GB') : ''}
-                          placeholder="Calculated..."
-                          readOnly
-                          className="bg-muted/40 font-mono font-semibold"
-                        />
-                      </Field>
-                    </div>
+                    <Field data-invalid={rangeError ? "true" : undefined}>
+                      <FieldLabel>Contract Duration</FieldLabel>
+                      <DatePickerWithRange
+                        date={contractRange}
+                        setDate={(range) => {
+                          setContractRange(range)
+                          setRangeError(false)
+                        }}
+                      />
+                      {rangeError && (
+                        <FieldError>
+                          Start and end dates are required.
+                        </FieldError>
+                      )}
+                    </Field>
 
                     <Field data-invalid={goError ? "true" : undefined}>
-                      <FieldLabel htmlFor="goNumber">Government Order No. (G.O.)</FieldLabel>
+                      <FieldLabel htmlFor="goNumber">
+                        Government Order No. (G.O.)
+                      </FieldLabel>
                       <Input
                         id="goNumber"
+                        name="goNumber"
+                        spellCheck={false}
                         placeholder="e.g. Ad.B3/928/2026/MGU"
                         value={goNumber}
                         onChange={(e) => {
-                          setGoNumber(e.target.value);
-                          if (e.target.value.trim()) setGoError(false);
+                          setGoNumber(e.target.value)
+                          if (e.target.value.trim()) setGoError(false)
                         }}
                         aria-invalid={goError ? "true" : undefined}
                       />
-                      {goError && <FieldError>G.O. Number is required.</FieldError>}
+                      {goError && (
+                        <FieldError>G.O. Number is required.</FieldError>
+                      )}
                     </Field>
 
                     <Field data-invalid={goDateError ? "true" : undefined}>
@@ -298,11 +431,13 @@ export const ContractManagement = ({ onNavigateToEmployees }: ContractManagement
                         id="goDate"
                         value={goDate}
                         onChange={(val) => {
-                          setGoDate(val);
-                          setGoDateError(false);
+                          setGoDate(val)
+                          setGoDateError(false)
                         }}
                       />
-                      {goDateError && <FieldError>Order Issue Date is required.</FieldError>}
+                      {goDateError && (
+                        <FieldError>Order Issue Date is required.</FieldError>
+                      )}
                     </Field>
                   </FieldGroup>
 
@@ -318,10 +453,10 @@ export const ContractManagement = ({ onNavigateToEmployees }: ContractManagement
           {/* Registry Table */}
           <div className="flex-1">
             <Card className="border-border/60 bg-card/50 backdrop-blur-md">
-              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <CardTitle className="font-heading text-lg font-bold flex items-center gap-2">
-                    <RiFileList3Line className="text-primary size-5" />
+                  <CardTitle className="flex items-center gap-2 font-heading text-lg font-bold">
+                    <RiFileList3Line className="size-5 text-primary" />
                     Contract Registry
                   </CardTitle>
                   <CardDescription>
@@ -330,9 +465,11 @@ export const ContractManagement = ({ onNavigateToEmployees }: ContractManagement
                 </div>
 
                 <div className="relative w-full sm:w-64">
-                  <RiSearchLine className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+                  <RiSearchLine className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by Employee/G.O..."
+                    placeholder="Search by Employee/G.O. (e.g., Ramesh)…"
+                    name="contract-search"
+                    aria-label="Search contracts"
                     className="pl-8"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -342,10 +479,12 @@ export const ContractManagement = ({ onNavigateToEmployees }: ContractManagement
 
               <CardContent>
                 {filteredContracts.length === 0 ? (
-                  <div className="py-12 border border-dashed rounded-lg flex flex-col items-center justify-center">
+                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
                     <Empty>
                       <div className="text-center">
-                        <p className="text-muted-foreground mb-2">No contracts found.</p>
+                        <p className="mb-2 text-muted-foreground">
+                          No contracts found.
+                        </p>
                         {searchQuery && (
                           <p className="text-xs text-muted-foreground/80">
                             Try refining your search query.
@@ -355,7 +494,7 @@ export const ContractManagement = ({ onNavigateToEmployees }: ContractManagement
                     </Empty>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto border rounded-lg">
+                  <div className="overflow-x-auto rounded-lg border">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -368,60 +507,112 @@ export const ContractManagement = ({ onNavigateToEmployees }: ContractManagement
                       </TableHeader>
                       <TableBody>
                         {filteredContracts.map((c) => {
-                          const empInfo = getEmployeeNameAndCategory(c.employeeId);
-                          const isOrphan = empInfo.name === 'Unknown Employee';
-                          
+                          const empInfo = getEmployeeNameAndCategory(
+                            c.employeeId
+                          )
+                          const isOrphan = empInfo.name === "Unknown Employee"
+
                           // Format display dates
-                          const startDisplay = new Date(c.startDate).toLocaleDateString('en-GB');
-                          const endDisplay = new Date(c.endDate).toLocaleDateString('en-GB');
-                          const goDateDisplay = new Date(c.goDate).toLocaleDateString('en-GB');
+                          const startDisplay = new Date(
+                            c.startDate
+                          ).toLocaleDateString("en-GB")
+                          const endDisplay = new Date(
+                            c.endDate
+                          ).toLocaleDateString("en-GB")
+                          const goDateDisplay = new Date(
+                            c.goDate
+                          ).toLocaleDateString("en-GB")
 
                           return (
                             <TableRow key={c.id} className="group/row">
                               <TableCell>
-                                <div>
-                                  <p className={`font-medium leading-tight ${isOrphan ? 'text-rose-500 italic' : 'text-foreground'}`}>
-                                    {empInfo.name}
-                                  </p>
-                                  {!isOrphan && (
-                                    <p className="text-xs text-muted-foreground mt-0.5">{empInfo.category}</p>
+                                <div className="flex items-center gap-2">
+                                  {!isOrphan ? (
+                                    <EmployeeAvatar
+                                      employee={employees.find(
+                                        (e) => e.id === c.employeeId
+                                      )!}
+                                      size="sm"
+                                      className="border-border/60"
+                                    />
+                                  ) : (
+                                    <div className="flex size-6 items-center justify-center rounded-full border border-rose-200 bg-rose-50 text-[9px] font-bold text-rose-500 uppercase">
+                                      ?
+                                    </div>
                                   )}
+                                  <div>
+                                    <p
+                                      className={`leading-tight font-medium ${isOrphan ? "text-rose-500 italic" : "text-foreground"}`}
+                                    >
+                                      {empInfo.name}
+                                    </p>
+                                    {!isOrphan && (
+                                      <p className="mt-0.5 text-xs text-muted-foreground">
+                                        {empInfo.category}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
                               </TableCell>
                               <TableCell className="font-mono text-xs">
                                 <div>{startDisplay}</div>
-                                <div className="text-muted-foreground">to {endDisplay}</div>
+                                <div className="text-muted-foreground">
+                                  to {endDisplay}
+                                </div>
                               </TableCell>
-                              <TableCell>{getStatusBadge(c.startDate, c.endDate)}</TableCell>
+                              <TableCell>
+                                {getStatusBadge(c.startDate, c.endDate)}
+                              </TableCell>
                               <TableCell className="text-xs">
                                 <div className="font-mono">{c.goNumber}</div>
-                                <div className="text-muted-foreground font-sans mt-0.5">Issued: {goDateDisplay}</div>
+                                <div className="mt-0.5 font-sans text-muted-foreground">
+                                  Issued: {goDateDisplay}
+                                </div>
                               </TableCell>
                               <TableCell className="text-right">
                                 <AlertDialog>
-                                  <AlertDialogTrigger render={
-                                    <Button
-                                      variant="destructive"
-                                      size="sm"
-                                      className="opacity-0 group-hover/row:opacity-100 transition-opacity"
-                                    >
-                                      Void
-                                    </Button>
-                                  } />
+                                  <AlertDialogTrigger
+                                    render={
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="opacity-0 transition-opacity group-hover/row:opacity-100"
+                                      >
+                                        Void
+                                      </Button>
+                                    }
+                                  />
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Void Service Contract?</AlertDialogTitle>
+                                      <AlertDialogTitle>
+                                        Void Service Contract?
+                                      </AlertDialogTitle>
                                       <AlertDialogDescription className="text-sm text-muted-foreground">
-                                        Are you sure you want to void contract <strong className="text-foreground">{c.goNumber}</strong>?
-                                        <br /><br />
-                                        <span className="text-destructive font-medium">Warning:</span> Voiding this contract will affect payroll calculation for dates within its duration, as there will be no covering contract. This cannot be undone.
+                                        Are you sure you want to void contract{" "}
+                                        <strong className="text-foreground">
+                                          {c.goNumber}
+                                        </strong>
+                                        ?
+                                        <br />
+                                        <br />
+                                        <span className="font-medium text-destructive">
+                                          Warning:
+                                        </span>{" "}
+                                        Voiding this contract will affect
+                                        payroll calculation for dates within its
+                                        duration, as there will be no covering
+                                        contract. This cannot be undone.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogCancel>
+                                        Cancel
+                                      </AlertDialogCancel>
                                       <AlertDialogAction
-                                        onClick={() => handleVoid(c.id, c.goNumber)}
-                                        className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                                        onClick={() =>
+                                          handleVoid(c.id, c.goNumber)
+                                        }
+                                        className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
                                       >
                                         Void Contract
                                       </AlertDialogAction>
@@ -430,7 +621,7 @@ export const ContractManagement = ({ onNavigateToEmployees }: ContractManagement
                                 </AlertDialog>
                               </TableCell>
                             </TableRow>
-                          );
+                          )
                         })}
                       </TableBody>
                     </Table>
@@ -442,5 +633,5 @@ export const ContractManagement = ({ onNavigateToEmployees }: ContractManagement
         </div>
       )}
     </div>
-  );
-};
+  )
+}
