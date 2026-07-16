@@ -8,6 +8,7 @@ import { AttendanceEntry } from "@/components/AttendanceEntry"
 import { DisbursementRecords } from "@/components/DisbursementRecords"
 import { SettingsWorkspace } from "@/components/SettingsWorkspace"
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard"
+import { Badge } from "@/components/ui/badge"
 import {
   RiCalendarCheckLine,
   RiUserLine,
@@ -146,23 +147,22 @@ export function App() {
           </nav>
 
           {/* Footer Area */}
-          <div className="flex h-16 shrink-0 flex-col items-center justify-center gap-1 overflow-hidden border-t border-border/80 p-3 text-center">
+          <div className="flex h-18 shrink-0 flex-col items-center justify-center gap-1.5 overflow-hidden border-t border-border/80 p-3 text-center">
             {!sidebarCollapsed ? (
               <>
-                <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                <span className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase">
                   AD BIII SECTION
                 </span>
-                <span className="text-[9px] text-muted-foreground/70">
-                  Made by{" "}
-                  <a
-                    href="https://www.aswinjim.me/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold text-primary/80 transition-colors hover:text-primary hover:underline"
-                  >
-                    Aswin
-                  </a>
-                </span>
+                <a
+                  href="https://www.aswinjim.me/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition-transform hover:scale-105 active:scale-95"
+                >
+                  <Badge variant="outline" className="border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] text-primary hover:bg-primary/10">
+                    Made by Aswin
+                  </Badge>
+                </a>
               </>
             ) : (
               <a
@@ -170,9 +170,11 @@ export function App() {
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Made by Aswin"
-                className="text-[9px] font-bold tracking-wider text-muted-foreground hover:text-foreground"
+                className="transition-transform hover:scale-105 active:scale-95"
               >
-                AJ
+                <Badge variant="outline" className="size-6 rounded-full border-primary/20 bg-primary/5 p-0 flex items-center justify-center text-[10px] text-primary hover:bg-primary/10">
+                  AJ
+                </Badge>
               </a>
             )}
           </div>
