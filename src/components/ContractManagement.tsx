@@ -29,7 +29,7 @@ interface ContractManagementProps {
 }
 
 export const ContractManagement = ({ onNavigateToEmployees }: ContractManagementProps) => {
-  const { employees, contracts, addContract, voidContract } = useMguDb();
+  const { employees, contracts, addContract, voidContract, saveContracts } = useMguDb();
 
   // Form states
   const [employeeId, setEmployeeId] = useState('');
@@ -93,9 +93,15 @@ export const ContractManagement = ({ onNavigateToEmployees }: ContractManagement
       return;
     }
 
+    const previousContracts = [...contracts];
     addContract(employeeId, startDate, goNumber.trim(), goDate);
     const emp = employees.find(e => e.id === employeeId);
-    toast.success(`Service contract issued for ${emp?.name || 'employee'}.`);
+    toast.success(`Service contract issued for ${emp?.name || 'employee'}.`, {
+      action: {
+        label: "Undo",
+        onClick: () => saveContracts(previousContracts)
+      }
+    });
 
     // Reset Form
     setEmployeeId('');
@@ -106,8 +112,14 @@ export const ContractManagement = ({ onNavigateToEmployees }: ContractManagement
   };
 
   const handleVoid = (id: string, goNo: string) => {
+    const previousContracts = [...contracts];
     voidContract(id);
-    toast.success(`Contract ${goNo} has been voided.`);
+    toast.success(`Contract ${goNo} has been voided.`, {
+      action: {
+        label: "Undo",
+        onClick: () => saveContracts(previousContracts)
+      }
+    });
   };
 
   // Get employee name for a contract row

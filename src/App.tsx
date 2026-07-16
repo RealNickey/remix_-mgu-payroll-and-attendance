@@ -205,7 +205,7 @@ export function App() {
       </div>
       
       {/* Toast Notification Container */}
-      <Toaster position="top-right" closeButton richColors />
+      <Toaster position="bottom-right" richColors />
     </MguDbProvider>
   );
 }

@@ -33,7 +33,8 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
     updateAttendance,
     batchMarkWeekdays,
     batchMarkAllPresent,
-    batchClearAll
+    batchClearAll,
+    saveAttendance
   } = useMguDb();
 
   // Selected billing cycle states
@@ -221,20 +222,38 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
   // Batch actions wrapper
   const handleBatchMarkWeekdays = () => {
     if (!selectedEmployeeId) return;
+    const previousAttendance = JSON.parse(JSON.stringify(attendance));
     batchMarkWeekdays(selectedEmployeeId, billingCycleDates);
-    toast.success("Marked all weekdays as present.");
+    toast.success("Marked all weekdays as present.", {
+      action: {
+        label: "Undo",
+        onClick: () => saveAttendance(previousAttendance)
+      }
+    });
   };
 
   const handleBatchMarkAllPresent = () => {
     if (!selectedEmployeeId) return;
+    const previousAttendance = JSON.parse(JSON.stringify(attendance));
     batchMarkAllPresent(selectedEmployeeId, billingCycleDates);
-    toast.success("Marked all dates in cycle as present.");
+    toast.success("Marked all dates in cycle as present.", {
+      action: {
+        label: "Undo",
+        onClick: () => saveAttendance(previousAttendance)
+      }
+    });
   };
 
   const handleBatchClearAll = () => {
     if (!selectedEmployeeId) return;
+    const previousAttendance = JSON.parse(JSON.stringify(attendance));
     batchClearAll(selectedEmployeeId, billingCycleDates);
-    toast.success("Cleared attendance flags for this cycle.");
+    toast.success("Cleared attendance flags for this cycle.", {
+      action: {
+        label: "Undo",
+        onClick: () => saveAttendance(previousAttendance)
+      }
+    });
   };
 
   return (

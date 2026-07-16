@@ -17,6 +17,9 @@ interface MguDbContextType {
   batchClearAll: (employeeId: string, dates: Date[]) => void;
   saveSettings: (newSettings: WageSettings) => void;
   calculatePayroll: (year: number, month: number) => PayrollRow[];
+  saveEmployees: (employees: Employee[]) => void;
+  saveContracts: (contracts: Contract[]) => void;
+  saveAttendance: (attendance: AttendanceData) => void;
 }
 
 export interface PayrollRow {
@@ -321,7 +324,10 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
         batchMarkAllPresent,
         batchClearAll,
         saveSettings,
-        calculatePayroll
+        calculatePayroll,
+        saveEmployees,
+        saveContracts,
+        saveAttendance
       }}
     >
       {children}

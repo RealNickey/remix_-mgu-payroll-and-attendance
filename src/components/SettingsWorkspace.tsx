@@ -13,11 +13,11 @@ export const SettingsWorkspace = () => {
   const { settings, saveSettings } = useMguDb();
 
   // Draft states
-  const [gardenersRate, setGardenersRate] = useState(500);
-  const [driversRate, setDriversRate] = useState(600);
-  const [cooksRate, setCooksRate] = useState(550);
-  const [helpersRate, setHelpersRate] = useState(450);
-  const [otRate, setOtRate] = useState(100);
+  const [gardenersRate, setGardenersRate] = useState<number | ''>(500);
+  const [driversRate, setDriversRate] = useState<number | ''>(600);
+  const [cooksRate, setCooksRate] = useState<number | ''>(550);
+  const [helpersRate, setHelpersRate] = useState<number | ''>(450);
+  const [otRate, setOtRate] = useState<number | ''>(100);
 
   // Initialize draft values when settings load
   useEffect(() => {
@@ -35,16 +35,22 @@ export const SettingsWorkspace = () => {
 
     const updatedSettings: WageSettings = {
       wageRates: {
-        Gardeners: Number(gardenersRate),
-        Drivers: Number(driversRate),
-        Cooks: Number(cooksRate),
-        Helpers: Number(helpersRate)
+        Gardeners: Number(gardenersRate) || 0,
+        Drivers: Number(driversRate) || 0,
+        Cooks: Number(cooksRate) || 0,
+        Helpers: Number(helpersRate) || 0
       },
-      otRate: Number(otRate)
+      otRate: Number(otRate) || 0
     };
 
+    const previousSettings = { ...settings };
     saveSettings(updatedSettings);
-    toast.success("Settings updated successfully. All payroll summaries have been updated.");
+    toast.success("Settings updated successfully. All payroll summaries have been updated.", {
+      action: {
+        label: "Undo",
+        onClick: () => saveSettings(previousSettings)
+      }
+    });
   };
 
   return (
@@ -83,7 +89,7 @@ export const SettingsWorkspace = () => {
                       id="gardeners"
                       type="number"
                       value={gardenersRate}
-                      onChange={(e) => setGardenersRate(Number(e.target.value))}
+                      onChange={(e) => setGardenersRate(e.target.value === '' ? '' : Number(e.target.value))}
                     />
                   </Field>
 
@@ -93,7 +99,7 @@ export const SettingsWorkspace = () => {
                       id="drivers"
                       type="number"
                       value={driversRate}
-                      onChange={(e) => setDriversRate(Number(e.target.value))}
+                      onChange={(e) => setDriversRate(e.target.value === '' ? '' : Number(e.target.value))}
                     />
                   </Field>
 
@@ -103,7 +109,7 @@ export const SettingsWorkspace = () => {
                       id="cooks"
                       type="number"
                       value={cooksRate}
-                      onChange={(e) => setCooksRate(Number(e.target.value))}
+                      onChange={(e) => setCooksRate(e.target.value === '' ? '' : Number(e.target.value))}
                     />
                   </Field>
 
@@ -113,7 +119,7 @@ export const SettingsWorkspace = () => {
                       id="helpers"
                       type="number"
                       value={helpersRate}
-                      onChange={(e) => setHelpersRate(Number(e.target.value))}
+                      onChange={(e) => setHelpersRate(e.target.value === '' ? '' : Number(e.target.value))}
                     />
                   </Field>
                 </div>
@@ -131,7 +137,7 @@ export const SettingsWorkspace = () => {
                       id="otRate"
                       type="number"
                       value={otRate}
-                      onChange={(e) => setOtRate(Number(e.target.value))}
+                      onChange={(e) => setOtRate(e.target.value === '' ? '' : Number(e.target.value))}
                     />
                   </Field>
                 </div>

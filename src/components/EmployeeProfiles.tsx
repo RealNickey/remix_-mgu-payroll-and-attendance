@@ -25,7 +25,7 @@ import { RiDeleteBinLine, RiUserAddLine, RiSearchLine, RiContactsLine } from '@r
 import { toast } from 'sonner';
 
 export const EmployeeProfiles = () => {
-  const { employees, contracts, addEmployee, deleteEmployee } = useMguDb();
+  const { employees, contracts, addEmployee, deleteEmployee, saveEmployees } = useMguDb();
   
   // Form states
   const [name, setName] = useState('');
@@ -68,8 +68,14 @@ export const EmployeeProfiles = () => {
       return;
     }
 
+    const previousEmployees = [...employees];
     addEmployee(name.trim(), category as JobCategory, bankAccount.trim());
-    toast.success(`Employee "${name.trim()}" registered successfully.`);
+    toast.success(`Employee "${name.trim()}" registered successfully.`, {
+      action: {
+        label: "Undo",
+        onClick: () => saveEmployees(previousEmployees)
+      }
+    });
     
     // Reset form
     setName('');
@@ -78,8 +84,14 @@ export const EmployeeProfiles = () => {
   };
 
   const handleDelete = (id: string, empName: string) => {
+    const previousEmployees = [...employees];
     deleteEmployee(id);
-    toast.success(`Employee "${empName}" has been deleted.`);
+    toast.success(`Employee "${empName}" has been deleted.`, {
+      action: {
+        label: "Undo",
+        onClick: () => saveEmployees(previousEmployees)
+      }
+    });
   };
 
   // Filtered employees
