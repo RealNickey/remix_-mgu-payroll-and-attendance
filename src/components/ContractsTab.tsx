@@ -1,0 +1,353 @@
+import { useState, useMemo, FormEvent } from 'react';
+import { useStore } from '../store';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { format, parseISO } from 'date-fns';
+import { 
+  FileText, 
+  FilePlus, 
+  Trash2, 
+  Search, 
+  Calendar, 
+  FileCheck,
+  Clock,
+  AlertTriangle,
+  Info
+} from 'lucide-react';
+
+export default function ContractsTab() {
+  const { employees, contracts, addContract, deleteContract } = useStore();
+  const [employeeId, setEmployeeId] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [orderNo, setOrderNo] = useState('');
+  const [orderDate, setOrderDate] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleAdd = (e: FormEvent) => {
+    e.preventDefault();
+    if (!employeeId || !startDate || !orderNo || !orderDate) return;
+    
+    addContract({ employeeId, startDate, orderNo, orderDate });
+    setStartDate('');
+    setOrderNo('');
+    setOrderDate('');
+  };
+
+  // Calculate contract status for display
+  const getContractStatus = (startStr: string, endStr: string) => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    if (todayStr < startStr) return { label: 'Upcoming', variant: 'secondary' as const };
+    if (todayStr > endStr) return { label: 'Expired', variant: 'destructive' as const };
+    return { label: 'Active', variant: 'default' as const };
+  };
+
+  // Filtered contracts list
+  const filteredContracts = useMemo(() => {
+    return contracts.filter(contract => {
+      const emp = employees.find(e => e.id === contract.employeeId);
+      if (!emp) return false;
+      const matchSearch = emp.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          contract.orderNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          emp.category.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchSearch;
+    });
+  }, [contracts, employees, searchQuery]);
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'Gardeners': return 'bg-teal-50 text-teal-700 border-teal-200';
+      case 'Drivers': return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'Cooks': return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'Helpers': return 'bg-blue-50 text-blue-700 border-blue-200';
+      default: return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
+  };
+
+  const getAvatarBg = (cat: string) => {
+    switch (cat) {
+      case 'Gardeners': return 'bg-teal-600';
+      case 'Drivers': return 'bg-purple-600';
+      case 'Cooks': return 'bg-amber-600';
+      case 'Helpers': return 'bg-blue-600';
+      default: return 'bg-slate-600';
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full space-y-6">
+      {/* Metrics Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
+            <FileText className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 leading-tight">Contract Management</h2>
+            <p className="text-[11px] font-medium text-slate-500">Track and issue regulatory 90-day service terms</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 bg-slate-50 px-4 py-1.5 rounded-xl border border-slate-200/40">
+          <div className="text-right border-r border-slate-200 pr-4">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Total Contracts</span>
+            <span className="text-sm font-mono font-bold text-slate-800">{contracts.length}</span>
+          </div>
+          <div className="text-right">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Active Now</span>
+            <span className="text-sm font-mono font-bold text-emerald-600">
+              {contracts.filter(c => {
+                const status = getContractStatus(c.startDate, c.endDate);
+                return status.label === 'Active';
+              }).length}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Split Layout */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start min-h-0">
+        {/* Left Form Panel */}
+        <div className="lg:col-span-4 xl:col-span-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div className="flex items-center gap-2 mb-5 pb-3 border-b border-slate-100">
+            <FilePlus className="w-4 h-4 text-emerald-600" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">Issue New Contract (90 Days)</h3>
+          </div>
+
+          {employees.length === 0 ? (
+            <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold text-amber-800 uppercase tracking-wider">No Employees Found</p>
+                <p className="text-xs text-amber-700/90 leading-normal">
+                  You must add employee profiles first before you can issue contracts.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleAdd} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="employee" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select Employee</Label>
+                <Select value={employeeId} onValueChange={setEmployeeId}>
+                  <SelectTrigger id="employee" className="rounded-xl h-9.5 text-xs border-slate-200 shadow-none">
+                    <SelectValue placeholder="Select Employee" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {employees.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id} className="text-xs rounded-lg">
+                        {emp.name} ({emp.category})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="startDate" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Start Date</Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <Input 
+                    type="date" 
+                    id="startDate" 
+                    value={startDate} 
+                    onChange={e => setStartDate(e.target.value)} 
+                    required 
+                    className="rounded-xl h-9.5 pl-9 text-xs border-slate-200 focus:ring-emerald-500/10 focus:border-emerald-500" 
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400 block ml-1 leading-normal">
+                  <Info className="w-3 h-3 inline mr-1 -mt-0.5" /> End date is automatically computed as exactly +89 days (total 90-day term).
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="orderNo" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Government Order Number</Label>
+                <Input 
+                  id="orderNo" 
+                  placeholder="e.g. Ad.B3/928/2026/MGU" 
+                  value={orderNo} 
+                  onChange={e => setOrderNo(e.target.value)} 
+                  required 
+                  className="rounded-xl h-9.5 text-xs border-slate-200 focus:ring-emerald-500/10 focus:border-emerald-500" 
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="orderDate" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Order Issue Date</Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <Input 
+                    type="date" 
+                    id="orderDate" 
+                    value={orderDate} 
+                    onChange={e => setOrderDate(e.target.value)} 
+                    required 
+                    className="rounded-xl h-9.5 pl-9 text-xs border-slate-200 focus:ring-emerald-500/10 focus:border-emerald-500" 
+                  />
+                </div>
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-9.5 text-xs font-bold shadow-xs cursor-pointer active:scale-98 transition-all"
+              >
+                Issue Term Contract
+              </Button>
+            </form>
+          )}
+        </div>
+
+        {/* Right History Panel */}
+        <div className="lg:col-span-8 xl:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex flex-col h-full min-h-0 overflow-hidden">
+          {/* Header Search */}
+          <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50 shrink-0">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Contracts Registry</h3>
+            
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400 z-10" />
+              <Input
+                type="text"
+                placeholder="Search employee, order number…"
+                className="pl-9 rounded-xl text-xs border-slate-200 h-9"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Table */}
+          <ScrollArea className="flex-1 min-h-0">
+            <Table className="w-full border-collapse">
+              <TableHeader className="sticky top-0 bg-white shadow-sm z-10">
+                <TableRow className="bg-white border-b border-slate-200/60">
+                  <TableHead className="p-3 text-[10px] font-bold text-slate-400 uppercase text-left w-[200px]">Employee</TableHead>
+                  <TableHead className="p-3 text-[10px] font-bold text-slate-400 uppercase text-left w-[120px]">Period</TableHead>
+                  <TableHead className="p-3 text-[10px] font-bold text-slate-400 uppercase text-left">Status</TableHead>
+                  <TableHead className="p-3 text-[10px] font-bold text-slate-400 uppercase text-left">Order Information</TableHead>
+                  <TableHead className="p-3 text-[10px] font-bold text-slate-400 uppercase text-right w-[90px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredContracts.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-slate-500 py-12">
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <FileCheck className="w-8 h-8 text-slate-300" />
+                        <span className="text-xs font-medium">No contract records found.</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredContracts.map(contract => {
+                    const emp = employees.find(e => e.id === contract.employeeId);
+                    const status = getContractStatus(contract.startDate, contract.endDate);
+                    const initials = emp ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '';
+                    
+                    return (
+                      <TableRow key={contract.id} className="border-t border-slate-100 bg-white hover:bg-slate-50/50">
+                        <TableCell className="p-3 border-r border-slate-100">
+                          {emp ? (
+                            <div className="flex items-center gap-2.5">
+                              <Avatar className="h-8 w-8 rounded-lg shrink-0">
+                                <AvatarFallback className={`rounded-lg text-[10px] font-bold text-white ${getAvatarBg(emp.category)}`}>
+                                  {initials}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-slate-900 text-xs truncate">{emp.name}</p>
+                                <Badge variant="outline" className={`text-[9px] font-bold mt-0.5 ${getCategoryColor(emp.category)}`}>
+                                  {emp.category}
+                                </Badge>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 italic text-xs">Unknown Employee</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="p-3 border-r border-slate-100">
+                          <div className="space-y-0.5 font-mono text-xs text-slate-700">
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase w-7">Start:</span>
+                              <span className="font-semibold text-slate-800">{contract.startDate}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase w-7">End:</span>
+                              <span className="font-semibold text-slate-800">{contract.endDate}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="p-3 border-r border-slate-100">
+                          <Badge variant={status.variant} className="text-[10px] font-bold tracking-wide uppercase">
+                            {status.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="p-3 border-r border-slate-100">
+                          <div className="space-y-0.5 text-xs text-slate-700">
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase">G.O. No:</span>
+                              <span className="font-mono font-semibold text-slate-800 truncate max-w-[150px]" title={contract.orderNo}>{contract.orderNo}</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium">
+                              <Calendar className="w-3.5 h-3.5 text-slate-300" />
+                              <span>Dated: <span className="font-mono">{contract.orderDate}</span></span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="p-3 text-right">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg text-[11px] font-bold cursor-pointer transition-all h-8"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 mr-1" /> Void
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Void Contract?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to void this contract for Sri/Smt <strong>{emp?.name}</strong>? This action will immediately terminate the contract and affect payroll computation. It cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => deleteContract(contract.id)}
+                                  className="bg-rose-600 hover:bg-rose-700 text-white border-none"
+                                >
+                                  Void
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </div>
+      </div>
+    </div>
+  );
+}
