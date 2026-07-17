@@ -5,6 +5,7 @@ import * as React from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 
 import { cn } from "@/lib/utils";
+import { RiFileDownloadLine } from "@remixicon/react";
 
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -26,6 +27,8 @@ interface PdfViewerProps {
   initialZoom?: number;
   /** Custom className */
   className?: string;
+  /** Callback to trigger PDF download */
+  onDownload?: () => void;
 }
 
 export function PdfViewer({
@@ -33,6 +36,7 @@ export function PdfViewer({
   mode = "single",
   initialZoom = 1.0,
   className,
+  onDownload,
 }: PdfViewerProps) {
   const [numPages, setNumPages] = React.useState<number>(0);
   const [currentPage, setCurrentPage] = React.useState<number>(1);
@@ -176,7 +180,7 @@ export function PdfViewer({
         )}
 
         {/* Zoom Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pr-12">
           <button
             type="button"
             onClick={handleZoomOut}
@@ -203,6 +207,21 @@ export function PdfViewer({
           >
             Fit
           </button>
+          
+          {onDownload && (
+            <>
+              <div className="w-[1px] h-4 bg-border/60 mx-1" />
+              <button
+                type="button"
+                onClick={onDownload}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
+                title="Download PDF"
+              >
+                <RiFileDownloadLine className="size-3.5" />
+                <span>Download</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 

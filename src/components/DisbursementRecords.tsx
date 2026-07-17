@@ -58,10 +58,6 @@ import { toast } from "sonner"
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog"
 import { PdfViewer } from "@/components/ui/pdf-viewer"
 
@@ -641,54 +637,25 @@ export const DisbursementRecords: React.FC = () => {
           }
         }}
       >
-        <DialogContent className="max-w-[95vw] sm:max-w-[85vw] w-full h-[70vh] flex flex-col overflow-hidden p-0 sm:rounded-xl">
-          <DialogHeader className="px-6 py-4 border-b border-slate-100 shrink-0 bg-slate-50/50">
-            <DialogTitle className="text-lg font-bold text-slate-800">
-              {previewPdf?.title}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Preview before downloading
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-hidden bg-slate-100/50 relative">
-            {previewPdf && (
-              <PdfViewer
-                file={previewPdf.url}
-                mode="scroll"
-                className="w-full h-full border-none rounded-none"
-              />
-            )}
-          </div>
-          <DialogFooter className="px-6 py-4 border-t border-slate-100 shrink-0 bg-white flex items-center justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (previewPdf) URL.revokeObjectURL(previewPdf.url)
-                setPreviewPdf(null)
+        <DialogContent className="max-w-[95vw] sm:max-w-[85vw] w-full h-[88vh] flex flex-col overflow-hidden p-0 sm:rounded-xl">
+          {previewPdf && (
+            <PdfViewer
+              file={previewPdf.url}
+              mode="scroll"
+              className="w-full h-full border-none rounded-none"
+              onDownload={() => {
+                const a = document.createElement("a")
+                a.href = previewPdf.url
+                a.download = previewPdf.filename
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+                toast.success("Downloaded", {
+                  description: `${previewPdf.title} has been downloaded.`,
+                })
               }}
-              className="rounded-xl cursor-pointer"
-            >
-              Cancel
-            </Button>
-            <Button
-              className="bg-primary hover:bg-primary/95 text-primary-foreground rounded-xl gap-2 cursor-pointer flex items-center"
-              onClick={() => {
-                if (previewPdf) {
-                  const a = document.createElement("a")
-                  a.href = previewPdf.url
-                  a.download = previewPdf.filename
-                  document.body.appendChild(a)
-                  a.click()
-                  document.body.removeChild(a)
-                  toast.success("Downloaded", {
-                    description: `${previewPdf.title} has been downloaded.`,
-                  })
-                }
-              }}
-            >
-              <RiFileDownloadLine className="size-4" /> Download PDF
-            </Button>
-          </DialogFooter>
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
