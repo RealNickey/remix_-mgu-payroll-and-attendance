@@ -111,7 +111,8 @@ export const SettingsWorkspace = () => {
         activeElement.classList.contains("justify-start")
 
       if (isInput || isSelectTrigger || isDatePicker) {
-        const isExpanded = activeElement.getAttribute("aria-expanded") === "true"
+        const isExpanded =
+          activeElement.getAttribute("aria-expanded") === "true"
         if (isExpanded) {
           return
         }
@@ -127,7 +128,10 @@ export const SettingsWorkspace = () => {
         if (currentIndex > -1 && currentIndex < fields.length - 1) {
           const nextField = fields[currentIndex + 1]
           nextField.focus()
-          if (nextField instanceof HTMLInputElement && nextField.type === "text") {
+          if (
+            nextField instanceof HTMLInputElement &&
+            nextField.type === "text"
+          ) {
             nextField.select()
           }
         } else if (currentIndex === fields.length - 1) {
@@ -235,20 +239,23 @@ export const SettingsWorkspace = () => {
     reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string)
-        
+
         // Validation
         if (!json || typeof json !== "object") {
           throw new Error("Invalid JSON file structure.")
         }
-        
+
         // Let's do basic validation
         const hasEmployees = Array.isArray(json.employees)
         const hasContracts = Array.isArray(json.contracts)
-        const hasAttendance = json.attendance && typeof json.attendance === "object"
+        const hasAttendance =
+          json.attendance && typeof json.attendance === "object"
         const hasSettings = json.settings && typeof json.settings === "object"
 
         if (!hasEmployees && !hasContracts && !hasAttendance && !hasSettings) {
-          throw new Error("JSON file does not contain valid database keys (employees, contracts, attendance, settings).")
+          throw new Error(
+            "JSON file does not contain valid database keys (employees, contracts, attendance, settings)."
+          )
         }
 
         let employeeCount = 0
@@ -257,36 +264,59 @@ export const SettingsWorkspace = () => {
         let containsSettings = false
 
         if (json.employees) {
-          if (!Array.isArray(json.employees)) throw new Error("Employees key must be an array")
+          if (!Array.isArray(json.employees))
+            throw new Error("Employees key must be an array")
           for (const emp of json.employees) {
-            if (typeof emp !== "object" || !emp.id || !emp.name || !emp.category) {
-              throw new Error("Each employee record must be valid and contain an id, name, and category.")
+            if (
+              typeof emp !== "object" ||
+              !emp.id ||
+              !emp.name ||
+              !emp.category
+            ) {
+              throw new Error(
+                "Each employee record must be valid and contain an id, name, and category."
+              )
             }
           }
           employeeCount = json.employees.length
         }
 
         if (json.contracts) {
-          if (!Array.isArray(json.contracts)) throw new Error("Contracts key must be an array")
+          if (!Array.isArray(json.contracts))
+            throw new Error("Contracts key must be an array")
           for (const ctr of json.contracts) {
-            if (typeof ctr !== "object" || !ctr.id || !ctr.employeeId || !ctr.startDate || !ctr.endDate) {
-              throw new Error("Each contract record must be valid and contain an id, employeeId, startDate, and endDate.")
+            if (
+              typeof ctr !== "object" ||
+              !ctr.id ||
+              !ctr.employeeId ||
+              !ctr.startDate ||
+              !ctr.endDate
+            ) {
+              throw new Error(
+                "Each contract record must be valid and contain an id, employeeId, startDate, and endDate."
+              )
             }
           }
           contractCount = json.contracts.length
         }
 
         if (json.attendance) {
-          if (typeof json.attendance !== "object" || Array.isArray(json.attendance)) throw new Error("Attendance key must be an object")
+          if (
+            typeof json.attendance !== "object" ||
+            Array.isArray(json.attendance)
+          )
+            throw new Error("Attendance key must be an object")
           for (const empId in json.attendance) {
             const records = json.attendance[empId]
-            if (typeof records !== "object" || Array.isArray(records)) throw new Error("Attendance records must be objects")
+            if (typeof records !== "object" || Array.isArray(records))
+              throw new Error("Attendance records must be objects")
             attendanceCount += Object.keys(records).length
           }
         }
 
         if (json.settings) {
-          if (typeof json.settings !== "object") throw new Error("Settings key must be an object")
+          if (typeof json.settings !== "object")
+            throw new Error("Settings key must be an object")
           containsSettings = true
         }
 
@@ -326,7 +356,9 @@ export const SettingsWorkspace = () => {
         saveSettings(importData.settings)
       }
 
-      toast.success("Database imported successfully. All tables and settings have been restored.")
+      toast.success(
+        "Database imported successfully. All tables and settings have been restored."
+      )
       setImportData(null)
       setImportPreview(null)
       setImportFileName("")
@@ -351,8 +383,8 @@ export const SettingsWorkspace = () => {
         </AlertTitle>
         <AlertDescription className="mt-1 text-xs">
           Modifying these rates will immediately re-compute payroll totals for
-          all billing cycles. Overtime charges and monthly ceilings are configured
-          per employee category below.
+          all billing cycles. Overtime charges and monthly ceilings are
+          configured per employee category below.
         </AlertDescription>
       </Alert>
 
@@ -464,26 +496,44 @@ export const SettingsWorkspace = () => {
                 <AccordionContent className="pt-2 pb-4">
                   <div className="flex flex-col gap-6">
                     {/* Gardeners */}
-                    <div className="rounded-lg border border-border/40 p-4 bg-muted/20">
-                      <h4 className="font-heading text-xs font-bold tracking-wider text-primary mb-3 uppercase">Gardeners</h4>
+                    <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
+                      <h4 className="mb-3 font-heading text-xs font-bold tracking-wider text-primary uppercase">
+                        Gardeners
+                      </h4>
                       <FieldGroup>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <Field>
-                            <FieldLabel htmlFor="gardenersOtRate">Overtime Rate (₹ / Day)</FieldLabel>
+                            <FieldLabel htmlFor="gardenersOtRate">
+                              Overtime Rate (₹ / Day)
+                            </FieldLabel>
                             <Input
                               id="gardenersOtRate"
                               type="number"
                               value={gardenersOtRate}
-                              onChange={(e) => setGardenersOtRate(e.target.value === "" ? "" : Number(e.target.value))}
+                              onChange={(e) =>
+                                setGardenersOtRate(
+                                  e.target.value === ""
+                                    ? ""
+                                    : Number(e.target.value)
+                                )
+                              }
                             />
                           </Field>
                           <Field>
-                            <FieldLabel htmlFor="gardenersOtCeiling">Monthly Ceiling (₹)</FieldLabel>
+                            <FieldLabel htmlFor="gardenersOtCeiling">
+                              Monthly Ceiling (₹)
+                            </FieldLabel>
                             <Input
                               id="gardenersOtCeiling"
                               type="number"
                               value={gardenersOtCeiling}
-                              onChange={(e) => setGardenersOtCeiling(e.target.value === "" ? "" : Number(e.target.value))}
+                              onChange={(e) =>
+                                setGardenersOtCeiling(
+                                  e.target.value === ""
+                                    ? ""
+                                    : Number(e.target.value)
+                                )
+                              }
                             />
                           </Field>
                         </div>
@@ -491,26 +541,44 @@ export const SettingsWorkspace = () => {
                     </div>
 
                     {/* Drivers */}
-                    <div className="rounded-lg border border-border/40 p-4 bg-muted/20">
-                      <h4 className="font-heading text-xs font-bold tracking-wider text-primary mb-3 uppercase">Drivers</h4>
+                    <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
+                      <h4 className="mb-3 font-heading text-xs font-bold tracking-wider text-primary uppercase">
+                        Drivers
+                      </h4>
                       <FieldGroup>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <Field>
-                            <FieldLabel htmlFor="driversOtRate">Overtime Rate (₹ / Day)</FieldLabel>
+                            <FieldLabel htmlFor="driversOtRate">
+                              Overtime Rate (₹ / Day)
+                            </FieldLabel>
                             <Input
                               id="driversOtRate"
                               type="number"
                               value={driversOtRate}
-                              onChange={(e) => setDriversOtRate(e.target.value === "" ? "" : Number(e.target.value))}
+                              onChange={(e) =>
+                                setDriversOtRate(
+                                  e.target.value === ""
+                                    ? ""
+                                    : Number(e.target.value)
+                                )
+                              }
                             />
                           </Field>
                           <Field>
-                            <FieldLabel htmlFor="driversOtCeiling">Monthly Ceiling (₹)</FieldLabel>
+                            <FieldLabel htmlFor="driversOtCeiling">
+                              Monthly Ceiling (₹)
+                            </FieldLabel>
                             <Input
                               id="driversOtCeiling"
                               type="number"
                               value={driversOtCeiling}
-                              onChange={(e) => setDriversOtCeiling(e.target.value === "" ? "" : Number(e.target.value))}
+                              onChange={(e) =>
+                                setDriversOtCeiling(
+                                  e.target.value === ""
+                                    ? ""
+                                    : Number(e.target.value)
+                                )
+                              }
                             />
                           </Field>
                         </div>
@@ -518,26 +586,44 @@ export const SettingsWorkspace = () => {
                     </div>
 
                     {/* Cooks */}
-                    <div className="rounded-lg border border-border/40 p-4 bg-muted/20">
-                      <h4 className="font-heading text-xs font-bold tracking-wider text-primary mb-3 uppercase">Cooks</h4>
+                    <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
+                      <h4 className="mb-3 font-heading text-xs font-bold tracking-wider text-primary uppercase">
+                        Cooks
+                      </h4>
                       <FieldGroup>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <Field>
-                            <FieldLabel htmlFor="cooksOtRate">Overtime Rate (₹ / Day)</FieldLabel>
+                            <FieldLabel htmlFor="cooksOtRate">
+                              Overtime Rate (₹ / Day)
+                            </FieldLabel>
                             <Input
                               id="cooksOtRate"
                               type="number"
                               value={cooksOtRate}
-                              onChange={(e) => setCooksOtRate(e.target.value === "" ? "" : Number(e.target.value))}
+                              onChange={(e) =>
+                                setCooksOtRate(
+                                  e.target.value === ""
+                                    ? ""
+                                    : Number(e.target.value)
+                                )
+                              }
                             />
                           </Field>
                           <Field>
-                            <FieldLabel htmlFor="cooksOtCeiling">Monthly Ceiling (₹)</FieldLabel>
+                            <FieldLabel htmlFor="cooksOtCeiling">
+                              Monthly Ceiling (₹)
+                            </FieldLabel>
                             <Input
                               id="cooksOtCeiling"
                               type="number"
                               value={cooksOtCeiling}
-                              onChange={(e) => setCooksOtCeiling(e.target.value === "" ? "" : Number(e.target.value))}
+                              onChange={(e) =>
+                                setCooksOtCeiling(
+                                  e.target.value === ""
+                                    ? ""
+                                    : Number(e.target.value)
+                                )
+                              }
                             />
                           </Field>
                         </div>
@@ -545,26 +631,44 @@ export const SettingsWorkspace = () => {
                     </div>
 
                     {/* Helpers */}
-                    <div className="rounded-lg border border-border/40 p-4 bg-muted/20">
-                      <h4 className="font-heading text-xs font-bold tracking-wider text-primary mb-3 uppercase">Helpers</h4>
+                    <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
+                      <h4 className="mb-3 font-heading text-xs font-bold tracking-wider text-primary uppercase">
+                        Helpers
+                      </h4>
                       <FieldGroup>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <Field>
-                            <FieldLabel htmlFor="helpersOtRate">Overtime Rate (₹ / Day)</FieldLabel>
+                            <FieldLabel htmlFor="helpersOtRate">
+                              Overtime Rate (₹ / Day)
+                            </FieldLabel>
                             <Input
                               id="helpersOtRate"
                               type="number"
                               value={helpersOtRate}
-                              onChange={(e) => setHelpersOtRate(e.target.value === "" ? "" : Number(e.target.value))}
+                              onChange={(e) =>
+                                setHelpersOtRate(
+                                  e.target.value === ""
+                                    ? ""
+                                    : Number(e.target.value)
+                                )
+                              }
                             />
                           </Field>
                           <Field>
-                            <FieldLabel htmlFor="helpersOtCeiling">Monthly Ceiling (₹)</FieldLabel>
+                            <FieldLabel htmlFor="helpersOtCeiling">
+                              Monthly Ceiling (₹)
+                            </FieldLabel>
                             <Input
                               id="helpersOtCeiling"
                               type="number"
                               value={helpersOtCeiling}
-                              onChange={(e) => setHelpersOtCeiling(e.target.value === "" ? "" : Number(e.target.value))}
+                              onChange={(e) =>
+                                setHelpersOtCeiling(
+                                  e.target.value === ""
+                                    ? ""
+                                    : Number(e.target.value)
+                                )
+                              }
                             />
                           </Field>
                         </div>
@@ -575,7 +679,7 @@ export const SettingsWorkspace = () => {
               </AccordionItem>
             </Accordion>
           </CardContent>
-          <CardFooter className="flex justify-between items-center border-t pt-4">
+          <CardFooter className="flex items-center justify-between border-t pt-4">
             <Button type="button" variant="outline" onClick={handlePdfPreview}>
               <RiDownload2Line data-icon="inline-start" />
               PDF Preview Policy
@@ -596,26 +700,37 @@ export const SettingsWorkspace = () => {
             Data Backup & Restore
           </CardTitle>
           <CardDescription>
-            Export all system data to a JSON backup file, or restore a previous backup.
+            Export all system data to a JSON backup file, or restore a previous
+            backup.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <div className="flex flex-col gap-4 sm:flex-row">
             <div className="flex-1 space-y-2">
-              <h4 className="text-sm font-bold text-foreground">Export Database</h4>
+              <h4 className="text-sm font-bold text-foreground">
+                Export Database
+              </h4>
               <p className="text-xs text-muted-foreground">
-                Download a JSON file containing all employee profiles, contracts, attendance records, and system settings.
+                Download a JSON file containing all employee profiles,
+                contracts, attendance records, and system settings.
               </p>
-              <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
+              <Button
+                variant="outline"
+                onClick={handleExport}
+                className="w-full sm:w-auto"
+              >
                 <RiDownload2Line className="size-4" data-icon="inline-start" />
                 Export Data (JSON)
               </Button>
             </div>
-            
+
             <div className="flex-1 space-y-2 border-t border-border/50 pt-4 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-6">
-              <h4 className="text-sm font-bold text-foreground">Restore Database</h4>
+              <h4 className="text-sm font-bold text-foreground">
+                Restore Database
+              </h4>
               <p className="text-xs text-muted-foreground">
-                Upload a previously exported JSON file to restore the entire portal data. This will overwrite the current database.
+                Upload a previously exported JSON file to restore the entire
+                portal data. This will overwrite the current database.
               </p>
               <div className="relative">
                 <input
@@ -631,7 +746,9 @@ export const SettingsWorkspace = () => {
                 />
                 <Button
                   variant="outline"
-                  onClick={() => document.getElementById("import-file")?.click()}
+                  onClick={() =>
+                    document.getElementById("import-file")?.click()
+                  }
                   className="w-full sm:w-auto"
                 >
                   <RiUpload2Line className="size-4" data-icon="inline-start" />
@@ -643,28 +760,46 @@ export const SettingsWorkspace = () => {
 
           {/* Import Preview and confirmation */}
           {importPreview && (
-            <div className="rounded-lg border border-border/80 bg-muted/40 p-4 animate-in fade-in-50 duration-200">
+            <div className="animate-in rounded-lg border border-border/80 bg-muted/40 p-4 duration-200 fade-in-50">
               <div className="mb-3 flex items-center justify-between border-b border-border/50 pb-2">
-                <span className="text-xs font-bold text-foreground">Backup File Preview</span>
-                <span className="font-mono text-[10px] text-muted-foreground">{importFileName}</span>
+                <span className="text-xs font-bold text-foreground">
+                  Backup File Preview
+                </span>
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  {importFileName}
+                </span>
               </div>
-              
-              <div className="grid grid-cols-2 gap-3 text-xs mb-4">
+
+              <div className="mb-4 grid grid-cols-2 gap-3 text-xs">
                 <div className="rounded-md border border-border/50 bg-background/55 p-2">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Employees</div>
-                  <div className="font-heading text-base font-bold text-foreground">{importPreview.employeeCount}</div>
+                  <div className="text-[10px] tracking-wider text-muted-foreground uppercase">
+                    Employees
+                  </div>
+                  <div className="font-heading text-base font-bold text-foreground">
+                    {importPreview.employeeCount}
+                  </div>
                 </div>
                 <div className="rounded-md border border-border/50 bg-background/55 p-2">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Contracts</div>
-                  <div className="font-heading text-base font-bold text-foreground">{importPreview.contractCount}</div>
+                  <div className="text-[10px] tracking-wider text-muted-foreground uppercase">
+                    Contracts
+                  </div>
+                  <div className="font-heading text-base font-bold text-foreground">
+                    {importPreview.contractCount}
+                  </div>
                 </div>
                 <div className="rounded-md border border-border/50 bg-background/55 p-2">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Attendance Logs</div>
-                  <div className="font-heading text-base font-bold text-foreground">{importPreview.attendanceCount}</div>
+                  <div className="text-[10px] tracking-wider text-muted-foreground uppercase">
+                    Attendance Logs
+                  </div>
+                  <div className="font-heading text-base font-bold text-foreground">
+                    {importPreview.attendanceCount}
+                  </div>
                 </div>
                 <div className="rounded-md border border-border/50 bg-background/55 p-2">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Wage Settings</div>
-                  <div className="font-heading text-xs font-bold text-foreground mt-0.5">
+                  <div className="text-[10px] tracking-wider text-muted-foreground uppercase">
+                    Wage Settings
+                  </div>
+                  <div className="mt-0.5 font-heading text-xs font-bold text-foreground">
                     {importPreview.hasSettings ? "✓ Included" : "✗ Not Found"}
                   </div>
                 </div>
@@ -672,17 +807,29 @@ export const SettingsWorkspace = () => {
 
               <Alert variant="destructive" className="mb-4">
                 <RiAlertLine className="size-5" />
-                <AlertTitle className="font-bold">Caution: Destructive Action</AlertTitle>
+                <AlertTitle className="font-bold">
+                  Caution: Destructive Action
+                </AlertTitle>
                 <AlertDescription className="text-xs">
-                  Confirming this restore will delete all current database entries and replace them with the data from the backup file. This cannot be undone.
+                  Confirming this restore will delete all current database
+                  entries and replace them with the data from the backup file.
+                  This cannot be undone.
                 </AlertDescription>
               </Alert>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={handleCancelImport}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelImport}
+                >
                   Cancel
                 </Button>
-                <Button variant="destructive" size="sm" onClick={handleConfirmImport}>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleConfirmImport}
+                >
                   Confirm & Overwrite
                 </Button>
               </div>

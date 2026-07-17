@@ -101,7 +101,10 @@ export const ContractManagement = ({
     return { from, to }
   }, [startDate, endDate])
 
-  const handleRangeSelect = (_range: DateRange | undefined, selectedDay: Date) => {
+  const handleRangeSelect = (
+    _range: DateRange | undefined,
+    selectedDay: Date
+  ) => {
     if (!selectedDay) {
       setStartDate("")
       setEndDate("")
@@ -172,7 +175,8 @@ export const ContractManagement = ({
         activeElement.classList.contains("justify-start")
 
       if (isInput || isSelectTrigger || isDatePicker) {
-        const isExpanded = activeElement.getAttribute("aria-expanded") === "true"
+        const isExpanded =
+          activeElement.getAttribute("aria-expanded") === "true"
         if (isExpanded) {
           return
         }
@@ -201,7 +205,10 @@ export const ContractManagement = ({
         if (currentIndex > -1 && currentIndex < fields.length - 1) {
           const nextField = fields[currentIndex + 1]
           nextField.focus()
-          if (nextField instanceof HTMLInputElement && nextField.type === "text") {
+          if (
+            nextField instanceof HTMLInputElement &&
+            nextField.type === "text"
+          ) {
             nextField.select()
           }
         } else if (currentIndex === fields.length - 1) {
@@ -249,13 +256,7 @@ export const ContractManagement = ({
     }
 
     const previousContracts = [...contracts]
-    addContract(
-      employeeId,
-      startDate,
-      endDate,
-      goNumber.trim(),
-      goDate
-    )
+    addContract(employeeId, startDate, endDate, goNumber.trim(), goDate)
     const emp = employees.find((e) => e.id === employeeId)
     toast.success(`Service contract issued for ${emp?.name || "employee"}.`, {
       action: {
@@ -414,7 +415,11 @@ export const ContractManagement = ({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="flex flex-col gap-4" onKeyDown={handleFormKeyDown}>
+                <form
+                  onSubmit={handleSubmit}
+                  className="flex flex-col gap-4"
+                  onKeyDown={handleFormKeyDown}
+                >
                   <FieldGroup>
                     <Field data-invalid={empError ? "true" : undefined}>
                       <FieldLabel>Select Employee</FieldLabel>
@@ -431,7 +436,12 @@ export const ContractManagement = ({
                         }}
                         itemToStringValue={(val) => val as string}
                       >
-                        <ComboboxInput placeholder="Choose employee…" name="employee-select" aria-label="Select employee" autoComplete="off" />
+                        <ComboboxInput
+                          placeholder="Choose employee…"
+                          name="employee-select"
+                          aria-label="Select employee"
+                          autoComplete="off"
+                        />
                         <ComboboxContent>
                           <ComboboxEmpty>No employee found.</ComboboxEmpty>
                           <ComboboxList>
@@ -456,7 +466,9 @@ export const ContractManagement = ({
                     </Field>
 
                     <Field data-invalid={startDateError ? "true" : undefined}>
-                      <FieldLabel htmlFor="contractPeriod">Contract Period</FieldLabel>
+                      <FieldLabel htmlFor="contractPeriod">
+                        Contract Period
+                      </FieldLabel>
                       <div className="flex items-center gap-2">
                         <DatePickerWithRange
                           id="contractPeriod"
@@ -474,27 +486,35 @@ export const ContractManagement = ({
                             setIsSelectingTo(false)
                           }}
                           disabled={!startDate && !endDate}
-                          className="h-9 px-3 shrink-0"
+                          className="h-9 shrink-0 px-3"
                         >
                           Reset
                         </Button>
                       </div>
                       {startDateError && (
-                        <FieldError>
-                          Contract period is required.
-                        </FieldError>
+                        <FieldError>Contract period is required.</FieldError>
                       )}
                       {startDate && endDate && (
                         <p className="mt-1 text-xs text-muted-foreground">
                           Selected Duration:{" "}
                           <span className="font-semibold text-foreground">
-                            {parseLocalDate(startDate)?.toLocaleDateString("en-GB")}
+                            {parseLocalDate(startDate)?.toLocaleDateString(
+                              "en-GB"
+                            )}
                           </span>{" "}
                           to{" "}
                           <span className="font-semibold text-foreground">
-                            {parseLocalDate(endDate)?.toLocaleDateString("en-GB")}
+                            {parseLocalDate(endDate)?.toLocaleDateString(
+                              "en-GB"
+                            )}
                           </span>{" "}
-                          (Total {Math.round((parseLocalDate(endDate)!.getTime() - parseLocalDate(startDate)!.getTime()) / (1000 * 60 * 60 * 24)) + 1} days)
+                          (Total{" "}
+                          {Math.round(
+                            (parseLocalDate(endDate)!.getTime() -
+                              parseLocalDate(startDate)!.getTime()) /
+                              (1000 * 60 * 60 * 24)
+                          ) + 1}{" "}
+                          days)
                         </p>
                       )}
                     </Field>

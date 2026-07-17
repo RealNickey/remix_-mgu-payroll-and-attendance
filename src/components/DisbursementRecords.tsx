@@ -55,10 +55,7 @@ import {
   RiEyeLine,
 } from "@remixicon/react"
 import { toast } from "sonner"
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { PdfViewer } from "@/components/ui/pdf-viewer"
 
 export const DisbursementRecords: React.FC = () => {
@@ -471,15 +468,15 @@ export const DisbursementRecords: React.FC = () => {
                 <Button
                   onClick={handleDownloadSummary}
                   size="sm"
-                  className="rounded-r-none border-r border-primary-foreground/10 cursor-pointer"
+                  className="cursor-pointer rounded-r-none border-r border-primary-foreground/10"
                 >
-                  <RiFileDownloadLine className="size-4 mr-1.5" />
+                  <RiFileDownloadLine className="mr-1.5 size-4" />
                   Summary Report
                 </Button>
                 <Button
                   onClick={handlePreviewSummary}
                   size="sm"
-                  className="rounded-l-none px-2.5 cursor-pointer"
+                  className="cursor-pointer rounded-l-none px-2.5"
                   title="Preview Summary Report"
                 >
                   <RiEyeLine className="size-4" />
@@ -491,16 +488,16 @@ export const DisbursementRecords: React.FC = () => {
                   onClick={handleDownloadAttendanceReport}
                   size="sm"
                   variant="outline"
-                  className="rounded-r-none border-r-0 cursor-pointer"
+                  className="cursor-pointer rounded-r-none border-r-0"
                 >
-                  <RiFilePaper2Line className="size-4 mr-1.5" />
+                  <RiFilePaper2Line className="mr-1.5 size-4" />
                   Attendance Report
                 </Button>
                 <Button
                   onClick={handlePreviewAttendanceReport}
                   size="sm"
                   variant="outline"
-                  className="rounded-l-none px-2.5 border-l-slate-200 cursor-pointer"
+                  className="cursor-pointer rounded-l-none border-l-slate-200 px-2.5"
                   title="Preview Attendance Report"
                 >
                   <RiEyeLine className="size-4" />
@@ -599,7 +596,7 @@ export const DisbursementRecords: React.FC = () => {
                             <Button
                               size="xs"
                               variant="outline"
-                              className="rounded-r-none border-r-0 cursor-pointer"
+                              className="cursor-pointer rounded-r-none border-r-0"
                               onClick={() => handleDownloadEmployeeReceipt(row)}
                               title="Download Receipt"
                             >
@@ -609,7 +606,7 @@ export const DisbursementRecords: React.FC = () => {
                             <Button
                               size="xs"
                               variant="outline"
-                              className="rounded-l-none pl-1.5 pr-1.5 border-l-slate-200 cursor-pointer"
+                              className="cursor-pointer rounded-l-none border-l-slate-200 pr-1.5 pl-1.5"
                               onClick={() => handlePreviewEmployeeReceipt(row)}
                               title="Preview Receipt"
                             >
@@ -637,12 +634,12 @@ export const DisbursementRecords: React.FC = () => {
           }
         }}
       >
-        <DialogContent className="max-w-[95vw] sm:max-w-[85vw] w-full h-[88vh] flex flex-col overflow-hidden p-0 sm:rounded-xl">
+        <DialogContent className="flex h-[88vh] w-full max-w-[95vw] flex-col overflow-hidden p-0 sm:max-w-[85vw] sm:rounded-xl">
           {previewPdf && (
             <PdfViewer
               file={previewPdf.url}
               mode="scroll"
-              className="w-full h-full border-none rounded-none"
+              className="h-full w-full rounded-none border-none"
               onDownload={() => {
                 const a = document.createElement("a")
                 a.href = previewPdf.url

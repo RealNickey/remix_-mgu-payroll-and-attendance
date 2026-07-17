@@ -59,8 +59,14 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 export const EmployeeProfiles = () => {
-  const { employees, contracts, addEmployee, updateEmployee, deleteEmployee, saveEmployees } =
-    useMguDb()
+  const {
+    employees,
+    contracts,
+    addEmployee,
+    updateEmployee,
+    deleteEmployee,
+    saveEmployees,
+  } = useMguDb()
 
   // Form states
   const [name, setName] = useState("")
@@ -78,7 +84,9 @@ export const EmployeeProfiles = () => {
   const [phoneError, setPhoneError] = useState<string | null>(null)
 
   // Edit states
-  const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null)
+  const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(
+    null
+  )
 
   const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
     if (e.key === "Enter") {
@@ -102,7 +110,8 @@ export const EmployeeProfiles = () => {
         activeElement.classList.contains("justify-start")
 
       if (isInput || isSelectTrigger || isDatePicker) {
-        const isExpanded = activeElement.getAttribute("aria-expanded") === "true"
+        const isExpanded =
+          activeElement.getAttribute("aria-expanded") === "true"
         if (isExpanded) {
           return
         }
@@ -122,7 +131,10 @@ export const EmployeeProfiles = () => {
         if (currentIndex > -1 && currentIndex < fields.length - 1) {
           const nextField = fields[currentIndex + 1]
           nextField.focus()
-          if (nextField instanceof HTMLInputElement && nextField.type === "text") {
+          if (
+            nextField instanceof HTMLInputElement &&
+            nextField.type === "text"
+          ) {
             nextField.select()
           }
         } else if (currentIndex === fields.length - 1) {
@@ -192,7 +204,13 @@ export const EmployeeProfiles = () => {
       toast.success(`Employee "${name.trim()}" updated successfully.`)
       setEditingEmployeeId(null)
     } else {
-      addEmployee(name.trim(), category as JobCategory, bankAccount.trim(), address.trim(), phone.trim())
+      addEmployee(
+        name.trim(),
+        category as JobCategory,
+        bankAccount.trim(),
+        address.trim(),
+        phone.trim()
+      )
       toast.success(`Employee "${name.trim()}" registered successfully.`, {
         action: {
           label: "Undo",
@@ -307,7 +325,11 @@ export const EmployeeProfiles = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4" onKeyDown={handleFormKeyDown}>
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col gap-4"
+              onKeyDown={handleFormKeyDown}
+            >
               <FieldGroup>
                 <Field data-invalid={nameError ? "true" : undefined}>
                   <FieldLabel htmlFor="fullName">Full Name</FieldLabel>
@@ -378,7 +400,9 @@ export const EmployeeProfiles = () => {
                 </Field>
 
                 <Field data-invalid={phoneError ? "true" : undefined}>
-                  <FieldLabel htmlFor="phone">Phone Number (10 digits)</FieldLabel>
+                  <FieldLabel htmlFor="phone">
+                    Phone Number (10 digits)
+                  </FieldLabel>
                   <Input
                     id="phone"
                     name="phone"
@@ -408,13 +432,20 @@ export const EmployeeProfiles = () => {
                     }}
                     aria-invalid={addressError ? "true" : undefined}
                   />
-                  {addressError && <FieldError>Address is required.</FieldError>}
+                  {addressError && (
+                    <FieldError>Address is required.</FieldError>
+                  )}
                 </Field>
               </FieldGroup>
 
-              <div className="flex gap-2 mt-2">
+              <div className="mt-2 flex gap-2">
                 {editingEmployeeId && (
-                  <Button type="button" variant="outline" className="flex-1" onClick={handleCancelEdit}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleCancelEdit}
+                  >
                     Cancel
                   </Button>
                 )}
@@ -529,7 +560,11 @@ export const EmployeeProfiles = () => {
                           <div className="mt-1.5 flex flex-col gap-1 text-[11px] text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-x-3">
                             <span>A/C: {emp.bankAccount}</span>
                             {emp.phone && <span>Ph: {emp.phone}</span>}
-                            {emp.address && <span className="max-w-xs truncate sm:max-w-md">Addr: {emp.address}</span>}
+                            {emp.address && (
+                              <span className="max-w-xs truncate sm:max-w-md">
+                                Addr: {emp.address}
+                              </span>
+                            )}
                           </div>
                         </ItemDescription>
                       </ItemContent>

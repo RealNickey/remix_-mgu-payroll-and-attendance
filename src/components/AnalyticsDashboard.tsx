@@ -76,8 +76,12 @@ export const AnalyticsDashboard: React.FC = () => {
   const currentYear = new Date().getFullYear()
   const [selectedYear, setSelectedYear] = useState(2026)
   const [selectedMonth, setSelectedMonth] = useState(7)
-  const [profileMetric, setProfileMetric] = useState<"Avg Work Days" | "Avg Overtime Days" | "Avg Pay (k₹)">("Avg Pay (k₹)")
-  const [activeTrendMetric, setActiveTrendMetric] = useState<"totalPay" | "regularPay" | "otPay">("totalPay")
+  const [profileMetric, setProfileMetric] = useState<
+    "Avg Work Days" | "Avg Overtime Days" | "Avg Pay (k₹)"
+  >("Avg Pay (k₹)")
+  const [activeTrendMetric, setActiveTrendMetric] = useState<
+    "totalPay" | "regularPay" | "otPay"
+  >("totalPay")
 
   const months = [
     { value: 1, label: "January" },
@@ -165,7 +169,11 @@ export const AnalyticsDashboard: React.FC = () => {
   // Calculate dynamic metrics for trend footer based on selected metric
   const trendMetrics = useMemo(() => {
     if (historicalTrendData.length < 2) {
-      return { percentageChangeStr: "up by 0.0%", sixMonthRangeStr: "", isUp: true }
+      return {
+        percentageChangeStr: "up by 0.0%",
+        sixMonthRangeStr: "",
+        isUp: true,
+      }
     }
     const prevMonthData = historicalTrendData[historicalTrendData.length - 2]
     const currentMonthData = historicalTrendData[historicalTrendData.length - 1]
@@ -184,7 +192,8 @@ export const AnalyticsDashboard: React.FC = () => {
     const percentageChangeStr = `${direction} by ${Math.abs(percent).toFixed(1)}%`
 
     const firstMonth = historicalTrendData[0]?.month || ""
-    const lastMonth = historicalTrendData[historicalTrendData.length - 1]?.month || ""
+    const lastMonth =
+      historicalTrendData[historicalTrendData.length - 1]?.month || ""
     const sixMonthRangeStr = `${firstMonth} - ${lastMonth}`
 
     return {
@@ -196,8 +205,14 @@ export const AnalyticsDashboard: React.FC = () => {
 
   const trendTotals = useMemo(() => {
     return {
-      totalPay: historicalTrendData.reduce((sum, item) => sum + item.totalPay, 0),
-      regularPay: historicalTrendData.reduce((sum, item) => sum + item.regularPay, 0),
+      totalPay: historicalTrendData.reduce(
+        (sum, item) => sum + item.totalPay,
+        0
+      ),
+      regularPay: historicalTrendData.reduce(
+        (sum, item) => sum + item.regularPay,
+        0
+      ),
       otPay: historicalTrendData.reduce((sum, item) => sum + item.otPay, 0),
     }
   }, [historicalTrendData])
@@ -452,12 +467,12 @@ export const AnalyticsDashboard: React.FC = () => {
       {/* KPI HIGHLIGHT CARDS */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* KPI 1 */}
-        <Card className="group relative overflow-hidden border-border/80 hover:border-foreground/10 hover:shadow-md hover:shadow-foreground/[0.02] transition-all duration-300">
+        <Card className="group relative overflow-hidden border-border/80 transition-all duration-300 hover:border-foreground/10 hover:shadow-md hover:shadow-foreground/[0.02]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Total Salaries Paid
             </span>
-            <div className="rounded-lg bg-primary/10 p-1.5 text-primary group-hover:scale-105 transition-transform">
+            <div className="rounded-lg bg-primary/10 p-1.5 text-primary transition-transform group-hover:scale-105">
               <RiMoneyRupeeCircleLine className="size-4" />
             </div>
           </CardHeader>
@@ -465,76 +480,76 @@ export const AnalyticsDashboard: React.FC = () => {
             <div className="truncate font-heading text-3xl font-extrabold tracking-tight text-foreground tabular-nums">
               {formatIndianRupees(totalWages)}
             </div>
-            <p className="mt-1 flex items-center gap-1 font-mono text-[10px] tracking-wide uppercase text-muted-foreground/80">
+            <p className="mt-1 flex items-center gap-1 font-mono text-[10px] tracking-wide text-muted-foreground/80 uppercase">
               <span>Current cycle disbursement</span>
             </p>
           </CardContent>
         </Card>
 
         {/* KPI 2 */}
-        <Card className="group relative overflow-hidden border-border/80 hover:border-foreground/10 hover:shadow-md hover:shadow-foreground/[0.02] transition-all duration-300">
+        <Card className="group relative overflow-hidden border-border/80 transition-all duration-300 hover:border-foreground/10 hover:shadow-md hover:shadow-foreground/[0.02]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Paid Employees
             </span>
-            <div className="rounded-lg bg-chart-2/10 p-1.5 text-chart-2 group-hover:scale-105 transition-transform">
+            <div className="rounded-lg bg-chart-2/10 p-1.5 text-chart-2 transition-transform group-hover:scale-105">
               <RiGroupLine className="size-4" />
             </div>
           </CardHeader>
           <CardContent className="pt-2">
             <div className="font-heading text-2xl font-bold tracking-tight text-foreground tabular-nums">
               {activeStaffCount}{" "}
-              <span className="font-sans text-xs font-normal text-muted-foreground uppercase tracking-wider">
+              <span className="font-sans text-xs font-normal tracking-wider text-muted-foreground uppercase">
                 / {employees.length} Total
               </span>
             </div>
-            <p className="mt-1 flex items-center gap-1 font-mono text-[10px] tracking-wide uppercase text-muted-foreground/80">
+            <p className="mt-1 flex items-center gap-1 font-mono text-[10px] tracking-wide text-muted-foreground/80 uppercase">
               <span>Active payroll records</span>
             </p>
           </CardContent>
         </Card>
 
         {/* KPI 3 */}
-        <Card className="group relative overflow-hidden border-border/80 hover:border-foreground/10 hover:shadow-md hover:shadow-foreground/[0.02] transition-all duration-300">
+        <Card className="group relative overflow-hidden border-border/80 transition-all duration-300 hover:border-foreground/10 hover:shadow-md hover:shadow-foreground/[0.02]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Regular Workdays
             </span>
-            <div className="rounded-lg bg-chart-3/10 p-1.5 text-chart-3 group-hover:scale-105 transition-transform">
+            <div className="rounded-lg bg-chart-3/10 p-1.5 text-chart-3 transition-transform group-hover:scale-105">
               <RiCalendarEventLine className="size-4" />
             </div>
           </CardHeader>
           <CardContent className="pt-2">
             <div className="font-heading text-2xl font-bold tracking-tight text-foreground tabular-nums">
               {regularDaysLogged.toFixed(1)}{" "}
-              <span className="font-sans text-xs font-normal text-muted-foreground uppercase tracking-wider">
+              <span className="font-sans text-xs font-normal tracking-wider text-muted-foreground uppercase">
                 Days
               </span>
             </div>
-            <p className="mt-1 flex items-center gap-1 font-mono text-[10px] tracking-wide uppercase text-muted-foreground/80">
+            <p className="mt-1 flex items-center gap-1 font-mono text-[10px] tracking-wide text-muted-foreground/80 uppercase">
               <span>Total attendance days logged</span>
             </p>
           </CardContent>
         </Card>
 
         {/* KPI 4 */}
-        <Card className="group relative overflow-hidden border-border/80 hover:border-foreground/10 hover:shadow-md hover:shadow-foreground/[0.02] transition-all duration-300">
+        <Card className="group relative overflow-hidden border-border/80 transition-all duration-300 hover:border-foreground/10 hover:shadow-md hover:shadow-foreground/[0.02]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Overtime Logged
             </span>
-            <div className="rounded-lg bg-chart-4/10 p-1.5 text-chart-4 group-hover:scale-105 transition-transform">
+            <div className="rounded-lg bg-chart-4/10 p-1.5 text-chart-4 transition-transform group-hover:scale-105">
               <RiTimeLine className="size-4" />
             </div>
           </CardHeader>
           <CardContent className="pt-2">
             <div className="font-heading text-2xl font-bold tracking-tight text-foreground tabular-nums">
               {overtimeDaysLogged}{" "}
-              <span className="font-sans text-xs font-normal text-muted-foreground uppercase tracking-wider">
+              <span className="font-sans text-xs font-normal tracking-wider text-muted-foreground uppercase">
                 Duties
               </span>
             </div>
-            <p className="mt-1 flex items-center gap-1 font-mono text-[10px] tracking-wide uppercase text-muted-foreground/80">
+            <p className="mt-1 flex items-center gap-1 font-mono text-[10px] tracking-wide text-muted-foreground/80 uppercase">
               <span>Eligible staff categories</span>
             </p>
           </CardContent>
@@ -562,12 +577,12 @@ export const AnalyticsDashboard: React.FC = () => {
                     key={key}
                     data-active={isActive}
                     onClick={() => setActiveTrendMetric(key)}
-                    className="flex flex-1 flex-col justify-center gap-1 border-r border-border/85 last:border-r-0 px-6 py-3 text-left data-[active=true]:bg-muted/40 transition-colors sm:px-8 sm:py-4 select-none cursor-pointer"
+                    className="flex flex-1 cursor-pointer flex-col justify-center gap-1 border-r border-border/85 px-6 py-3 text-left transition-colors select-none last:border-r-0 data-[active=true]:bg-muted/40 sm:px-8 sm:py-4"
                   >
-                    <span className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">
+                    <span className="font-mono text-[9px] tracking-wider text-muted-foreground uppercase">
                       {trendChartConfig[key].label}
                     </span>
-                    <span className="font-heading text-lg font-bold tracking-tight text-foreground sm:text-2xl tabular-nums">
+                    <span className="font-heading text-lg font-bold tracking-tight text-foreground tabular-nums sm:text-2xl">
                       {formatIndianRupees(trendTotals[key])}
                     </span>
                   </button>
@@ -586,18 +601,37 @@ export const AnalyticsDashboard: React.FC = () => {
                 margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
               >
                 <defs>
-                  <linearGradient id="disbursementGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={`var(--color-${activeTrendMetric})`} stopOpacity={0.25} />
-                    <stop offset="95%" stopColor={`var(--color-${activeTrendMetric})`} stopOpacity={0.01} />
+                  <linearGradient
+                    id="disbursementGradient"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="5%"
+                      stopColor={`var(--color-${activeTrendMetric})`}
+                      stopOpacity={0.25}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={`var(--color-${activeTrendMetric})`}
+                      stopOpacity={0.01}
+                    />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} stroke="var(--border)" className="stroke-border/30" strokeDasharray="3 3" />
+                <CartesianGrid
+                  vertical={false}
+                  stroke="var(--border)"
+                  className="stroke-border/30"
+                  strokeDasharray="3 3"
+                />
                 <XAxis
                   dataKey="month"
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  className="font-mono text-[10px] fill-muted-foreground"
+                  className="fill-muted-foreground font-mono text-[10px]"
                 />
                 <YAxis
                   tickLine={false}
@@ -606,7 +640,7 @@ export const AnalyticsDashboard: React.FC = () => {
                     `₹${val >= 1000 ? val / 1000 + "k" : val}`
                   }
                   dx={-10}
-                  className="font-mono text-[10px] fill-muted-foreground"
+                  className="fill-muted-foreground font-mono text-[10px]"
                 />
                 <ChartTooltip
                   cursor={false}
@@ -629,9 +663,9 @@ export const AnalyticsDashboard: React.FC = () => {
                 <div className="flex items-center gap-2 leading-none font-semibold text-foreground">
                   Trending {trendMetrics.percentageChangeStr} this month{" "}
                   {trendMetrics.isUp ? (
-                    <RiArrowRightUpLine className="size-4 text-emerald-500 animate-pulse" />
+                    <RiArrowRightUpLine className="size-4 animate-pulse text-emerald-500" />
                   ) : (
-                    <RiArrowRightDownLine className="size-4 text-rose-500 animate-pulse" />
+                    <RiArrowRightDownLine className="size-4 animate-pulse text-rose-500" />
                   )}
                 </div>
                 <div className="flex items-center gap-2 leading-none text-muted-foreground">
@@ -656,7 +690,7 @@ export const AnalyticsDashboard: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex min-h-[300px] flex-1 flex-col items-center justify-center pt-0">
-            <div className="relative h-[220px] w-full flex items-center justify-center">
+            <div className="relative flex h-[220px] w-full items-center justify-center">
               <ChartContainer
                 config={distributionPieConfig}
                 className="h-full w-full"
@@ -688,11 +722,11 @@ export const AnalyticsDashboard: React.FC = () => {
               </ChartContainer>
 
               {/* Central Donut Text */}
-              <div className="absolute flex flex-col items-center justify-center text-center pointer-events-none">
-                <span className="font-heading text-3xl font-extrabold text-foreground tracking-tight leading-none">
+              <div className="pointer-events-none absolute flex flex-col items-center justify-center text-center">
+                <span className="font-heading text-3xl leading-none font-extrabold tracking-tight text-foreground">
                   {employees.length}
                 </span>
-                <span className="text-[10px] font-mono tracking-wider text-muted-foreground uppercase mt-0.5">
+                <span className="mt-0.5 font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
                   Staff
                 </span>
               </div>
@@ -703,13 +737,13 @@ export const AnalyticsDashboard: React.FC = () => {
               {categoryDistributionData.map((entry) => (
                 <div
                   key={entry.name}
-                  className="flex items-center gap-2 rounded-md border border-border/40 bg-muted/20 px-2.5 py-1.5 hover:bg-muted/40 transition-colors"
+                  className="flex items-center gap-2 rounded-md border border-border/40 bg-muted/20 px-2.5 py-1.5 transition-colors hover:bg-muted/40"
                 >
                   <div
-                    className="size-2 rounded-full shrink-0"
+                    className="size-2 shrink-0 rounded-full"
                     style={{ backgroundColor: entry.fill }}
                   />
-                  <span className="font-medium text-muted-foreground truncate">
+                  <span className="truncate font-medium text-muted-foreground">
                     {entry.name}
                   </span>
                   <span className="ml-auto font-mono font-bold text-foreground">
@@ -759,7 +793,12 @@ export const AnalyticsDashboard: React.FC = () => {
                   data={categoryPayrollData}
                   margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" className="stroke-border/30" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="var(--border)"
+                    className="stroke-border/30"
+                  />
                   <XAxis
                     dataKey="category"
                     tickLine={false}
@@ -802,7 +841,8 @@ export const AnalyticsDashboard: React.FC = () => {
                 value={profileMetric}
                 onValueChange={(val) =>
                   setProfileMetric(
-                    val as "Avg Work Days" | "Avg Overtime Days" | "Avg Pay (k₹)"
+                    val as
+                      "Avg Work Days" | "Avg Overtime Days" | "Avg Pay (k₹)"
                   )
                 }
               >
@@ -812,12 +852,15 @@ export const AnalyticsDashboard: React.FC = () => {
                 <SelectContent>
                   <SelectItem value="Avg Pay (k₹)">Avg Pay (k₹)</SelectItem>
                   <SelectItem value="Avg Work Days">Avg Work Days</SelectItem>
-                  <SelectItem value="Avg Overtime Days">Avg Overtime Days</SelectItem>
+                  <SelectItem value="Avg Overtime Days">
+                    Avg Overtime Days
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <CardDescription className="text-xs">
-              Performance metrics (average working days, overtime, and pay) per staff type
+              Performance metrics (average working days, overtime, and pay) per
+              staff type
             </CardDescription>
           </CardHeader>
           <CardContent className="flex min-h-[300px] flex-1 flex-col items-center justify-center pt-0">
@@ -839,7 +882,12 @@ export const AnalyticsDashboard: React.FC = () => {
                   innerRadius={30}
                   outerRadius={110}
                 >
-                  <PolarGrid gridType="circle" radialLines={false} stroke="var(--border)" className="stroke-border/30" />
+                  <PolarGrid
+                    gridType="circle"
+                    radialLines={false}
+                    stroke="var(--border)"
+                    className="stroke-border/30"
+                  />
                   <ChartTooltip
                     cursor={false}
                     content={
@@ -849,15 +897,17 @@ export const AnalyticsDashboard: React.FC = () => {
                         formatter={(value, _, item) => (
                           <>
                             <div
-                              className="shrink-0 rounded-[2px] h-2.5 w-2.5"
+                              className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
                               style={{
-                                backgroundColor: item.color || item.payload?.fill,
+                                backgroundColor:
+                                  item.color || item.payload?.fill,
                               }}
                             />
-                            <div className="flex flex-1 justify-between leading-none items-center">
-                              <span className="text-muted-foreground mr-4">
+                            <div className="flex flex-1 items-center justify-between leading-none">
+                              <span className="mr-4 text-muted-foreground">
                                 {radialChartConfig[
-                                  item.payload.category as keyof typeof radialChartConfig
+                                  item.payload
+                                    .category as keyof typeof radialChartConfig
                                 ]?.label ?? item.payload.category}
                               </span>
                               <span className="font-mono font-medium text-foreground tabular-nums">
@@ -875,25 +925,29 @@ export const AnalyticsDashboard: React.FC = () => {
                     <LabelList
                       position="insideStart"
                       dataKey="category"
-                      className="fill-white capitalize mix-blend-luminosity font-bold font-mono text-[9px] tracking-tight"
+                      className="fill-white font-mono text-[9px] font-bold tracking-tight capitalize mix-blend-luminosity"
                     />
                   </RadialBar>
                 </RadialBarChart>
               </ChartContainer>
             )}
           </CardContent>
-          <CardFooter className="pt-0 pb-6 flex-col gap-1 items-start">
-            <div className="flex w-full items-center gap-1.5 rounded-md border border-border/40 bg-muted/20 px-3 py-2 text-xs font-medium leading-none text-foreground">
-              <span className="font-semibold text-primary">{highestCategoryMetric.category}</span>
-              <span className="text-muted-foreground">leads {profileMetric.toLowerCase()} with</span>
-              <span className="font-bold text-foreground font-mono bg-background px-1.5 py-0.5 rounded border border-border/50">
+          <CardFooter className="flex-col items-start gap-1 pt-0 pb-6">
+            <div className="flex w-full items-center gap-1.5 rounded-md border border-border/40 bg-muted/20 px-3 py-2 text-xs leading-none font-medium text-foreground">
+              <span className="font-semibold text-primary">
+                {highestCategoryMetric.category}
+              </span>
+              <span className="text-muted-foreground">
+                leads {profileMetric.toLowerCase()} with
+              </span>
+              <span className="rounded border border-border/50 bg-background px-1.5 py-0.5 font-mono font-bold text-foreground">
                 {profileMetric === "Avg Pay (k₹)"
                   ? `₹${highestCategoryMetric.value}k`
                   : `${highestCategoryMetric.value} days`}
               </span>
-              <RiArrowRightUpLine className="size-4 text-emerald-500 ml-auto shrink-0 animate-pulse" />
+              <RiArrowRightUpLine className="ml-auto size-4 shrink-0 animate-pulse text-emerald-500" />
             </div>
-            <div className="text-[9px] font-mono tracking-wider uppercase text-muted-foreground/75 mt-2">
+            <div className="mt-2 font-mono text-[9px] tracking-wider text-muted-foreground/75 uppercase">
               Metrics based on: {cycleDateRangeStr || "Current Cycle"}
             </div>
           </CardFooter>

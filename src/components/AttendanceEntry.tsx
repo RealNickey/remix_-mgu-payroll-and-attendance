@@ -236,7 +236,14 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
       if (record) {
         if (record.fn) regularDays += 0.5
         if (record.an) regularDays += 0.5
-        if (record.ot && selectedEmployee && (settings.otRates?.[selectedEmployee.category] ?? settings.otRate ?? 0) > 0) otDays += 1
+        if (
+          record.ot &&
+          selectedEmployee &&
+          (settings.otRates?.[selectedEmployee.category] ??
+            settings.otRate ??
+            0) > 0
+        )
+          otDays += 1
         if (record.holiday && (record.fn || record.an)) holidayDays += 1
       }
     })
@@ -314,8 +321,6 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
   }
 
   const isSunday = (date: Date) => date.getDay() === 0
-
-
 
   const selectedMonthLabel =
     MONTHS.find((m) => m.value === selectedMonth)?.label ?? ""
@@ -838,17 +843,25 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
                   <div className="p-4">
                     {/* Days of week header */}
                     <div className="mb-2 grid grid-cols-7 gap-2 text-center text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-                        <div key={day}>{day}</div>
-                      ))}
+                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                        (day) => (
+                          <div key={day}>{day}</div>
+                        )
+                      )}
                     </div>
-                    
+
                     {/* Calendar cells */}
                     <div className="grid grid-cols-7 gap-2">
-                      {billingCycleDates.length > 0 && Array.from({ length: billingCycleDates[0].getDay() }).map((_, i) => (
-                        <div key={`empty-${i}`} className="min-h-16 rounded-md border border-transparent bg-transparent" />
-                      ))}
-                      
+                      {billingCycleDates.length > 0 &&
+                        Array.from({
+                          length: billingCycleDates[0].getDay(),
+                        }).map((_, i) => (
+                          <div
+                            key={`empty-${i}`}
+                            className="min-h-16 rounded-md border border-transparent bg-transparent"
+                          />
+                        ))}
+
                       {billingCycleDates.map((date) => {
                         const dateStr = formatDateKey(date)
                         const isCovered = isDateCoveredByContract(
@@ -859,43 +872,68 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
                         const record = getAttendanceRecord(dateStr)
                         const weekend = isWeekend(date)
                         const sunday = isSunday(date)
-                        
+
                         return (
                           <Popover key={dateStr}>
-                            <PopoverTrigger render={
-                              <button
-                                disabled={!isCovered}
+                            <PopoverTrigger
+                              render={
+                                <button
+                                  disabled={!isCovered}
+                                  className={cn(
+                                    "relative flex min-h-14 flex-col items-center justify-center rounded-md border p-1 transition-colors hover:bg-muted/50 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none",
+                                    !isCovered
+                                      ? "border-transparent bg-muted/20 opacity-40"
+                                      : sunday
+                                        ? "border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10"
+                                        : weekend
+                                          ? "border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10"
+                                          : "border-border/50 bg-card shadow-sm"
+                                  )}
+                                />
+                              }
+                            >
+                              <span
                                 className={cn(
-                                  "relative flex min-h-14 flex-col items-center justify-center rounded-md border p-1 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                                  !isCovered ? "opacity-40 border-transparent bg-muted/20" : 
-                                  sunday ? "border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10" : 
-                                  weekend ? "border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10" : 
-                                  "border-border/50 bg-card shadow-sm"
+                                  "text-xs font-bold tabular-nums",
+                                  !isCovered
+                                    ? "text-muted-foreground/50"
+                                    : sunday
+                                      ? "text-rose-500 dark:text-rose-400"
+                                      : weekend
+                                        ? "text-amber-600 dark:text-amber-400"
+                                        : "text-foreground"
                                 )}
-                              />
-                            }>
-                              <span className={cn(
-                                "text-xs font-bold tabular-nums",
-                                !isCovered ? "text-muted-foreground/50" :
-                                sunday ? "text-rose-500 dark:text-rose-400" :
-                                weekend ? "text-amber-600 dark:text-amber-400" :
-                                "text-foreground"
-                              )}>
+                              >
                                 {date.getDate()}
                               </span>
-                              
+
                               {isCovered && (
                                 <div className="absolute bottom-1.5 flex w-full flex-col items-center gap-1 px-1.5">
                                   {/* FN / AN bars */}
                                   <div className="flex h-1.5 w-full gap-px overflow-hidden rounded-sm">
-                                    <div className={cn("flex-1 transition-colors", record.fn ? "bg-sky-500" : "bg-muted")} />
-                                    <div className={cn("flex-1 transition-colors", record.an ? "bg-violet-500" : "bg-muted")} />
+                                    <div
+                                      className={cn(
+                                        "flex-1 transition-colors",
+                                        record.fn ? "bg-sky-500" : "bg-muted"
+                                      )}
+                                    />
+                                    <div
+                                      className={cn(
+                                        "flex-1 transition-colors",
+                                        record.an ? "bg-violet-500" : "bg-muted"
+                                      )}
+                                    />
                                   </div>
                                   {/* OT / HOL dots */}
                                   <div className="flex h-1 w-full justify-center gap-0.5">
-                                    {record.ot && (settings.otRates?.[selectedEmployee.category] ?? settings.otRate ?? 0) > 0 && (
-                                      <div className="size-1 rounded-full bg-amber-500" />
-                                    )}
+                                    {record.ot &&
+                                      (settings.otRates?.[
+                                        selectedEmployee.category
+                                      ] ??
+                                        settings.otRate ??
+                                        0) > 0 && (
+                                        <div className="size-1 rounded-full bg-amber-500" />
+                                      )}
                                     {record.holiday && (
                                       <div className="size-1 rounded-full bg-purple-500" />
                                     )}
@@ -903,19 +941,30 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
                                 </div>
                               )}
                             </PopoverTrigger>
-                            <PopoverContent className="w-[180px] p-3" align="center">
+                            <PopoverContent
+                              className="w-[180px] p-3"
+                              align="center"
+                            >
                               <div className="mb-2.5 text-center text-xs font-semibold text-muted-foreground">
-                                {date.toLocaleDateString("en-US", { weekday: 'long', month: 'short', day: 'numeric' })}
+                                {date.toLocaleDateString("en-US", {
+                                  weekday: "long",
+                                  month: "short",
+                                  day: "numeric",
+                                })}
                               </div>
                               <div className="grid grid-cols-2 gap-2">
                                 <Toggle
                                   size="sm"
                                   variant="outline"
                                   pressed={record.fn}
-                                  onPressedChange={() => handleToggle(dateStr, "fn")}
+                                  onPressedChange={() =>
+                                    handleToggle(dateStr, "fn")
+                                  }
                                   className={cn(
                                     "h-8 text-[10px] font-bold transition-all",
-                                    record.fn ? "border-sky-500 bg-sky-500 text-white hover:bg-sky-600 hover:text-white aria-pressed:bg-sky-500 aria-pressed:text-white" : "text-muted-foreground"
+                                    record.fn
+                                      ? "border-sky-500 bg-sky-500 text-white hover:bg-sky-600 hover:text-white aria-pressed:bg-sky-500 aria-pressed:text-white"
+                                      : "text-muted-foreground"
                                   )}
                                 >
                                   FN
@@ -924,23 +973,35 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
                                   size="sm"
                                   variant="outline"
                                   pressed={record.an}
-                                  onPressedChange={() => handleToggle(dateStr, "an")}
+                                  onPressedChange={() =>
+                                    handleToggle(dateStr, "an")
+                                  }
                                   className={cn(
                                     "h-8 text-[10px] font-bold transition-all",
-                                    record.an ? "border-violet-500 bg-violet-500 text-white hover:bg-violet-600 hover:text-white aria-pressed:bg-violet-500 aria-pressed:text-white" : "text-muted-foreground"
+                                    record.an
+                                      ? "border-violet-500 bg-violet-500 text-white hover:bg-violet-600 hover:text-white aria-pressed:bg-violet-500 aria-pressed:text-white"
+                                      : "text-muted-foreground"
                                   )}
                                 >
                                   AN
                                 </Toggle>
-                                {(settings.otRates?.[selectedEmployee.category] ?? settings.otRate ?? 0) > 0 ? (
+                                {(settings.otRates?.[
+                                  selectedEmployee.category
+                                ] ??
+                                  settings.otRate ??
+                                  0) > 0 ? (
                                   <Toggle
                                     size="sm"
                                     variant="outline"
                                     pressed={record.ot}
-                                    onPressedChange={() => handleToggle(dateStr, "ot")}
+                                    onPressedChange={() =>
+                                      handleToggle(dateStr, "ot")
+                                    }
                                     className={cn(
                                       "h-8 text-[10px] font-bold transition-all",
-                                      record.ot ? "border-amber-500 bg-amber-500 text-white hover:bg-amber-600 hover:text-white aria-pressed:bg-amber-500 aria-pressed:text-white" : "text-muted-foreground"
+                                      record.ot
+                                        ? "border-amber-500 bg-amber-500 text-white hover:bg-amber-600 hover:text-white aria-pressed:bg-amber-500 aria-pressed:text-white"
+                                        : "text-muted-foreground"
                                     )}
                                   >
                                     OT
@@ -952,10 +1013,14 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
                                   size="sm"
                                   variant="outline"
                                   pressed={record.holiday}
-                                  onPressedChange={() => handleToggle(dateStr, "holiday")}
+                                  onPressedChange={() =>
+                                    handleToggle(dateStr, "holiday")
+                                  }
                                   className={cn(
                                     "h-8 text-[10px] font-bold transition-all",
-                                    record.holiday ? "border-purple-500 bg-purple-500 text-white hover:bg-purple-600 hover:text-white aria-pressed:bg-purple-500 aria-pressed:text-white" : "text-muted-foreground"
+                                    record.holiday
+                                      ? "border-purple-500 bg-purple-500 text-white hover:bg-purple-600 hover:text-white aria-pressed:bg-purple-500 aria-pressed:text-white"
+                                      : "text-muted-foreground"
                                   )}
                                 >
                                   HOL

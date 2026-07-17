@@ -101,11 +101,8 @@ export function App() {
             </div>
             {!sidebarCollapsed && (
               <div className="flex flex-col">
-                <span className="font-heading text-xs font-bold tracking-wider text-foreground uppercase">
-                  Admin Portal
-                </span>
-                <span className="text-[10px] font-medium text-muted-foreground uppercase">
-                  M.G. University
+                <span className="font-heading text-sm font-bold tracking-wider text-foreground uppercase">
+                  Estate Payroll
                 </span>
               </div>
             )}
@@ -159,7 +156,10 @@ export function App() {
                   rel="noopener noreferrer"
                   className="transition-transform hover:scale-105 active:scale-95"
                 >
-                  <Badge variant="outline" className="border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] text-primary hover:bg-primary/10">
+                  <Badge
+                    variant="outline"
+                    className="border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] text-primary hover:bg-primary/10"
+                  >
                     Made by Aswin
                   </Badge>
                 </a>
@@ -172,7 +172,10 @@ export function App() {
                 title="Made by Aswin"
                 className="transition-transform hover:scale-105 active:scale-95"
               >
-                <Badge variant="outline" className="size-6 rounded-full border-primary/20 bg-primary/5 p-0 flex items-center justify-center text-[10px] text-primary hover:bg-primary/10">
+                <Badge
+                  variant="outline"
+                  className="flex size-6 items-center justify-center rounded-full border-primary/20 bg-primary/5 p-0 text-[10px] text-primary hover:bg-primary/10"
+                >
                   AJ
                 </Badge>
               </a>
@@ -190,7 +193,9 @@ export function App() {
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                 className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
                 title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-                aria-label={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                aria-label={
+                  sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"
+                }
               >
                 {sidebarCollapsed ? (
                   <RiMenuUnfoldLine className="size-5" aria-hidden="true" />
@@ -230,7 +235,10 @@ export function App() {
                 aria-label="Toggle Theme"
               >
                 {theme === "dark" ? (
-                  <RiSunLine className="size-4 animate-pulse text-amber-400" aria-hidden="true" />
+                  <RiSunLine
+                    className="size-4 animate-pulse text-amber-400"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <RiMoonLine className="size-4" aria-hidden="true" />
                 )}

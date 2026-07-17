@@ -283,7 +283,10 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
       const dateStr = formatDateKey(date)
       const isSunday = date.getDay() === 0
       // Only apply to dates covered by contract and not Sunday
-      if (!isSunday && isDateCoveredByContract(contracts, employeeId, dateStr)) {
+      if (
+        !isSunday &&
+        isDateCoveredByContract(contracts, employeeId, dateStr)
+      ) {
         const currentRecord = employeeAttendance[dateStr] || {
           fn: false,
           an: false,
@@ -406,7 +409,7 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
 
       const baseRate = settings.wageRates[emp.category] || 0
       const regularPay = regularDays * baseRate
-      
+
       const otRate = settings.otRates?.[emp.category] ?? settings.otRate ?? 0
       const otCeiling = settings.otCeilings?.[emp.category] ?? 5000
       let otPay = otDays * otRate

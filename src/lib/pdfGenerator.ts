@@ -220,84 +220,128 @@ export function generateAttendanceReport(
 }
 
 function rupeesToMalayalamWords(num: number): string {
-  const value = Math.round(num); // Round to nearest integer
-  if (value === 0) return "പൂജ്യം";
-  
-  const units = ["", "ഒന്ന്", "രണ്ട്", "മൂന്ന്", "നാല്", "അഞ്ച്", "ആറ്", "ഏഴ്", "എട്ട്", "ഒൻപത്"];
-  const teens = ["പത്ത്", "പതിനൊന്ന്", "പന്ത്രണ്ട്", "പതിമൂന്ന്", "പതിനാല്", "പതിനഞ്ച്", "പതിനാറ്", "പതിനേഴ്", "പതിനെട്ട്", "പത്തൊൻപത്"];
-  const tens = ["", "", "ഇരുപത്", "മുപ്പത്", "നാൽപത്", "അൻപത്", "അറുപത്", "എഴുപത്", "എൺപത്", "തൊണ്ണൂറ്"];
-  
+  const value = Math.round(num) // Round to nearest integer
+  if (value === 0) return "പൂജ്യം"
+
+  const units = [
+    "",
+    "ഒന്ന്",
+    "രണ്ട്",
+    "മൂന്ന്",
+    "നാല്",
+    "അഞ്ച്",
+    "ആറ്",
+    "ഏഴ്",
+    "എട്ട്",
+    "ഒൻപത്",
+  ]
+  const teens = [
+    "പത്ത്",
+    "പതിനൊന്ന്",
+    "പന്ത്രണ്ട്",
+    "പതിമൂന്ന്",
+    "പതിനാല്",
+    "പതിനഞ്ച്",
+    "പതിനാറ്",
+    "പതിനേഴ്",
+    "പതിനെട്ട്",
+    "പത്തൊൻപത്",
+  ]
+  const tens = [
+    "",
+    "",
+    "ഇരുപത്",
+    "മുപ്പത്",
+    "നാൽപത്",
+    "അൻപത്",
+    "അറുപത്",
+    "എഴുപത്",
+    "എൺപത്",
+    "തൊണ്ണൂറ്",
+  ]
+
   function formatBelow100(n: number): string {
-    if (n < 10) return units[n];
-    if (n < 20) return teens[n - 10];
-    
-    const tenPart = Math.floor(n / 10);
-    const unitPart = n % 10;
-    
-    if (unitPart === 0) return tens[tenPart];
-    
-    const compoundingPrefixes = ["", "", "ഇരുപത്തി", "മുപ്പത്തി", "നാൽപത്തി", "അൻപത്തി", "അറുപത്തി", "എഴുപത്തി", "എൺപത്തി", "തൊണ്ണൂറ്റി"];
-    return compoundingPrefixes[tenPart] + units[unitPart];
+    if (n < 10) return units[n]
+    if (n < 20) return teens[n - 10]
+
+    const tenPart = Math.floor(n / 10)
+    const unitPart = n % 10
+
+    if (unitPart === 0) return tens[tenPart]
+
+    const compoundingPrefixes = [
+      "",
+      "",
+      "ഇരുപത്തി",
+      "മുപ്പത്തി",
+      "നാൽപത്തി",
+      "അൻപത്തി",
+      "അറുപത്തി",
+      "എഴുപത്തി",
+      "എൺപത്തി",
+      "തൊണ്ണൂറ്റി",
+    ]
+    return compoundingPrefixes[tenPart] + units[unitPart]
   }
-  
+
   function formatBelow1000(n: number): string {
-    if (n < 100) return formatBelow100(n);
-    const hundredPart = Math.floor(n / 100);
-    const remainder = n % 100;
-    
-    let hundredWord = "";
-    if (hundredPart === 1) hundredWord = "നൂറ്";
-    else if (hundredPart === 2) hundredWord = "ഇരുന്നൂറ്";
-    else if (hundredPart === 3) hundredWord = "മുന്നൂറ്";
-    else if (hundredPart === 4) hundredWord = "നാനൂറ്";
-    else if (hundredPart === 5) hundredWord = "അഞ്ഞൂറ്";
-    else if (hundredPart === 6) hundredWord = "അറുനൂറ്";
-    else if (hundredPart === 7) hundredWord = "എഴുനൂറ്";
-    else if (hundredPart === 8) hundredWord = "എണ്ണൂറ്";
-    else if (hundredPart === 9) hundredWord = "തൊള്ളായിരം";
-    
-    if (remainder === 0) return hundredWord;
-    
-    let hundredPrefix = "";
-    if (hundredPart === 1) hundredPrefix = "നൂറ്റി";
-    else if (hundredPart === 2) hundredPrefix = "ഇരുന്നൂറ്റി";
-    else if (hundredPart === 3) hundredPrefix = "മുന്നൂറ്റി";
-    else if (hundredPart === 4) hundredPrefix = "നാനൂറ്റി";
-    else if (hundredPart === 5) hundredPrefix = "അഞ്ഞൂറ്റി";
-    else if (hundredPart === 6) hundredPrefix = "അറുനൂറ്റി";
-    else if (hundredPart === 7) hundredPrefix = "എഴുനൂറ്റി";
-    else if (hundredPart === 8) hundredPrefix = "എണ്ണൂറ്റി";
-    else if (hundredPart === 9) hundredPrefix = "തൊള്ളായിരത്തി";
-    
-    return hundredPrefix + " " + formatBelow100(remainder);
+    if (n < 100) return formatBelow100(n)
+    const hundredPart = Math.floor(n / 100)
+    const remainder = n % 100
+
+    let hundredWord = ""
+    if (hundredPart === 1) hundredWord = "നൂറ്"
+    else if (hundredPart === 2) hundredWord = "ഇരുന്നൂറ്"
+    else if (hundredPart === 3) hundredWord = "മുന്നൂറ്"
+    else if (hundredPart === 4) hundredWord = "നാനൂറ്"
+    else if (hundredPart === 5) hundredWord = "അഞ്ഞൂറ്"
+    else if (hundredPart === 6) hundredWord = "അറുനൂറ്"
+    else if (hundredPart === 7) hundredWord = "എഴുനൂറ്"
+    else if (hundredPart === 8) hundredWord = "എണ്ണൂറ്"
+    else if (hundredPart === 9) hundredWord = "തൊള്ളായിരം"
+
+    if (remainder === 0) return hundredWord
+
+    let hundredPrefix = ""
+    if (hundredPart === 1) hundredPrefix = "നൂറ്റി"
+    else if (hundredPart === 2) hundredPrefix = "ഇരുന്നൂറ്റി"
+    else if (hundredPart === 3) hundredPrefix = "മുന്നൂറ്റി"
+    else if (hundredPart === 4) hundredPrefix = "നാനൂറ്റി"
+    else if (hundredPart === 5) hundredPrefix = "അഞ്ഞൂറ്റി"
+    else if (hundredPart === 6) hundredPrefix = "അറുനൂറ്റി"
+    else if (hundredPart === 7) hundredPrefix = "എഴുനൂറ്റി"
+    else if (hundredPart === 8) hundredPrefix = "എണ്ണൂറ്റി"
+    else if (hundredPart === 9) hundredPrefix = "തൊള്ളായിരത്തി"
+
+    return hundredPrefix + " " + formatBelow100(remainder)
   }
 
   function formatBelow100000(n: number): string {
-    if (n < 1000) return formatBelow1000(n);
-    const thousandPart = Math.floor(n / 1000);
-    const remainder = n % 1000;
-    
-    let thousandWord = "";
-    if (thousandPart === 1) thousandWord = "ആയിരത്തി";
+    if (n < 1000) return formatBelow1000(n)
+    const thousandPart = Math.floor(n / 1000)
+    const remainder = n % 1000
+
+    let thousandWord = ""
+    if (thousandPart === 1) thousandWord = "ആയിരത്തി"
     else {
       if (thousandPart === 10) {
-        thousandWord = "പതിനായിരത്തി";
+        thousandWord = "പതിനായിരത്തി"
       } else if (thousandPart === 20) {
-        thousandWord = "ഇരുപതിനായിരത്തി";
+        thousandWord = "ഇരുപതിനായിരത്തി"
       } else if (thousandPart === 30) {
-        thousandWord = "മുപ്പതിനായിരത്തി";
+        thousandWord = "മുപ്പതിനായിരത്തി"
       } else if (thousandPart === 40) {
-        thousandWord = "നാൽപതിനായിരത്തി";
+        thousandWord = "നാൽപതിനായിരത്തി"
       } else if (thousandPart === 50) {
-        thousandWord = "അൻപതിനായിരത്തി";
+        thousandWord = "അൻപതിനായിരത്തി"
       } else if (thousandPart === 60) {
-        thousandWord = "അറുപതിനായിരത്തി";
+        thousandWord = "അറുപതിനായിരത്തി"
       } else if (thousandPart === 70) {
-        thousandWord = "എഴുപതിനായിരത്തി";
+        thousandWord = "എഴുപതിനായിരത്തി"
       } else if (thousandPart === 80) {
-        thousandWord = "എൺപതിനായിരത്തി";
+        thousandWord = "എൺപതിനായിരത്തി"
       } else if (thousandPart === 90) {
-        thousandWord = "തൊണ്ണൂറായിരത്തി";
+        thousandWord = "തൊണ്ണൂറായിരത്തി"
       } else {
         const prefixes: Record<number, string> = {
           2: "രണ്ടായിരത്തി",
@@ -307,28 +351,28 @@ function rupeesToMalayalamWords(num: number): string {
           6: "ആറായിരത്തി",
           7: "ഏഴായിരത്തി",
           8: "എട്ടായിരത്തി",
-          9: "ഒൻപതിനായിരത്തി"
-        };
+          9: "ഒൻപതിനായിരത്തി",
+        }
         if (prefixes[thousandPart]) {
-          thousandWord = prefixes[thousandPart];
+          thousandWord = prefixes[thousandPart]
         } else {
-          thousandWord = formatBelow100(thousandPart) + " ആയിരത്തി";
+          thousandWord = formatBelow100(thousandPart) + " ആയിരത്തി"
         }
       }
     }
-    
+
     if (remainder === 0) {
-      if (thousandPart === 1) return "ആയിരം";
-      if (thousandPart === 10) return "പതിനായിരം";
-      if (thousandPart === 20) return "ഇരുപതിനായിരം";
-      if (thousandPart === 30) return "മുപ്പതിനായിരം";
-      if (thousandPart === 40) return "നാൽപതിനായിരം";
-      if (thousandPart === 50) return "അൻപതിനായിരം";
-      if (thousandPart === 60) return "അറുപതിനായിരം";
-      if (thousandPart === 70) return "എഴുപതിനായിരം";
-      if (thousandPart === 80) return "എൺപതിനായിരം";
-      if (thousandPart === 90) return "തൊണ്ണൂറായിരം";
-      
+      if (thousandPart === 1) return "ആയിരം"
+      if (thousandPart === 10) return "പതിനായിരം"
+      if (thousandPart === 20) return "ഇരുപതിനായിരം"
+      if (thousandPart === 30) return "മുപ്പതിനായിരം"
+      if (thousandPart === 40) return "നാൽപതിനായിരം"
+      if (thousandPart === 50) return "അൻപതിനായിരം"
+      if (thousandPart === 60) return "അറുപതിനായിരം"
+      if (thousandPart === 70) return "എഴുപതിനായിരം"
+      if (thousandPart === 80) return "എൺപതിനായിരം"
+      if (thousandPart === 90) return "തൊണ്ണൂറായിരം"
+
       const suffixes: Record<number, string> = {
         2: "രണ്ടായിരം",
         3: "മൂന്നായിരം",
@@ -337,17 +381,17 @@ function rupeesToMalayalamWords(num: number): string {
         6: "ആറായിരം",
         7: "ഏഴായിരം",
         8: "എട്ടായിരം",
-        9: "ഒൻപതിനായിരം"
-      };
-      if (suffixes[thousandPart]) return suffixes[thousandPart];
-      
-      return formatBelow100(thousandPart) + " ആയിരം";
+        9: "ഒൻപതിനായിരം",
+      }
+      if (suffixes[thousandPart]) return suffixes[thousandPart]
+
+      return formatBelow100(thousandPart) + " ആയിരം"
     }
-    
-    return thousandWord + " " + formatBelow1000(remainder);
+
+    return thousandWord + " " + formatBelow1000(remainder)
   }
-  
-  return formatBelow100000(value);
+
+  return formatBelow100000(value)
 }
 
 export function generateEmployeeReceipt(
@@ -531,10 +575,10 @@ export function generateEmployeeReceipt(
   doc.addFileToVFS("NotoSansMalayalam-Regular.ttf", NOTO_SANS_MALAYALAM_BASE64)
   doc.addFont("NotoSansMalayalam-Regular.ttf", "NotoSansMalayalam", "normal")
 
-  const pWidth = doc.internal.pageSize.width   // 210mm
+  const pWidth = doc.internal.pageSize.width // 210mm
   const pHeight = doc.internal.pageSize.height // 297mm
   const pMargin = 20
-  const usableWidth = pWidth - pMargin * 2       // 170mm
+  const usableWidth = pWidth - pMargin * 2 // 170mm
 
   // Draw cut line / divider in the middle
   doc.setDrawColor(203, 213, 225) // Slate-300
@@ -557,11 +601,17 @@ export function generateEmployeeReceipt(
   const title1Width = doc.getTextWidth(title1)
   doc.setDrawColor(15, 23, 42)
   doc.setLineWidth(0.4)
-  doc.line(pWidth / 2 - title1Width / 2, r1Start + 12, pWidth / 2 + title1Width / 2, r1Start + 12)
+  doc.line(
+    pWidth / 2 - title1Width / 2,
+    r1Start + 12,
+    pWidth / 2 + title1Width / 2,
+    r1Start + 12
+  )
 
   // Body text 1
   doc.setFontSize(11)
-  const bodyText1 = "മഹാത്മാഗാന്ധി സർവ്വകലാശാലയിൽ ദിവസ വേതന വ്യവസ്ഥയിൽ ജോലി ചെയ്യുന്ന എനിക്ക് പ്രതിഫല തുക മാസാവസാനം ഒരുമിച്ച് നൽകണമെന്ന് അപേക്ഷിക്കുന്നു."
+  const bodyText1 =
+    "മഹാത്മാഗാന്ധി സർവ്വകലാശാലയിൽ ദിവസ വേതന വ്യവസ്ഥയിൽ ജോലി ചെയ്യുന്ന എനിക്ക് പ്രതിഫല തുക മാസാവസാനം ഒരുമിച്ച് നൽകണമെന്ന് അപേക്ഷിക്കുന്നു."
   const splitText1 = doc.splitTextToSize(bodyText1, usableWidth)
   doc.text(splitText1, pMargin, r1Start + 24, { lineHeightFactor: 1.6 })
 
@@ -588,7 +638,12 @@ export function generateEmployeeReceipt(
 
   // Underline
   const title2Width = doc.getTextWidth(title2)
-  doc.line(pWidth / 2 - title2Width / 2, r2Start + 12, pWidth / 2 + title2Width / 2, r2Start + 12)
+  doc.line(
+    pWidth / 2 - title2Width / 2,
+    r2Start + 12,
+    pWidth / 2 + title2Width / 2,
+    r2Start + 12
+  )
 
   // Body text 2 with dynamic values
   doc.setFontSize(11)
@@ -651,11 +706,7 @@ export function generateSettingsPreview(settings: WageSettings) {
   doc.setFont("Helvetica", "normal")
   doc.setFontSize(10)
   doc.setTextColor(100)
-  doc.text(
-    `Policy Status: Proposed / Active`,
-    margin,
-    44
-  )
+  doc.text(`Policy Status: Proposed / Active`, margin, 44)
   doc.text(
     `Export Date: ${new Date().toLocaleDateString("en-GB")}`,
     pageWidth - margin,
@@ -727,7 +778,7 @@ export function generateSettingsPreview(settings: WageSettings) {
   doc.setFont("Helvetica", "normal")
   doc.setFontSize(9.5)
   doc.setTextColor(71, 85, 105)
-  
+
   const guidelines = [
     "1. Daily Base Wages are computed for both Forenoon (FN) and Afternoon (AN) sessions.",
     "2. Overtime is logged in days and calculated using the category-specific Overtime Rate.",
