@@ -641,7 +641,7 @@ export const DisbursementRecords: React.FC = () => {
           }
         }}
       >
-        <DialogContent className="max-w-[95vw] w-full h-[70vh] flex flex-col overflow-hidden p-0 sm:rounded-xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-[85vw] w-full h-[70vh] flex flex-col overflow-hidden p-0 sm:rounded-xl">
           <DialogHeader className="px-6 py-4 border-b border-slate-100 shrink-0 bg-slate-50/50">
             <DialogTitle className="text-lg font-bold text-slate-800">
               {previewPdf?.title}
