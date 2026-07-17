@@ -12,8 +12,7 @@ export function generateIndividualReceipt(
   year: number,
   month: number,
   attendanceRecord: Record<string, DailyAttendance>,
-  settings: Settings
-): void {
+  settings: Settings, asPreview = false): { url: string; filename: string } | void {
   const doc = new jsPDF('landscape'); // Landscape to fit 31 columns
   const monthName = format(new Date(year, month - 1), 'MMMM yyyy');
   
@@ -110,5 +109,9 @@ export function generateIndividualReceipt(
   doc.text('Name & Signature of AR', 160, sigY);
   doc.text('Name & Signature of DR', 230, sigY);
   
-  doc.save(`Receipt_${employee.name.replace(/\s+/g, '_')}_${monthName}.pdf`);
+  const filename = `Receipt_${employee.name.replace(/\s+/g, '_')}_${monthName}.pdf`;
+  if (asPreview) {
+    return { url: URL.createObjectURL(doc.output('blob')), filename };
+  }
+  doc.save(filename);
 }

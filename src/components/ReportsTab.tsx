@@ -3,6 +3,8 @@ import { useStore } from '../store';
 import { calculatePayroll } from '../lib/payroll';
 import { generateAttendanceReport, generateDisbursementReport, generateIndividualReceipt } from '@/src/lib/pdf';
 import { Button } from '@/components/ui/button';
+import { PdfViewer } from '@/components/elements/pdf-viewer';
+import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogDescription, DialogHeader } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +32,7 @@ export default function ReportsTab() {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
+  const [previewPdf, setPreviewPdf] = useState<{ url: string, filename: string, title: string } | null>(null);
 
   const payrolls = useMemo(() => {
     return calculatePayroll(year, month, employees, contracts, attendance, settings);
@@ -45,18 +48,18 @@ export default function ReportsTab() {
   }, [payrolls]);
 
   const handleGenerateDisbursement = () => {
-    generateDisbursementReport(year, month, employees, contracts, attendance, settings);
-    toast.success('Summary Report Generated', { description: `Disbursement records for ${format(new Date(year, month - 1), 'MMMM yyyy')} downloaded.` });
+    const { url, filename } = generateDisbursementReport(year, month, employees, contracts, attendance, settings, true);
+    setPreviewPdf({ url, filename, title: 'Disbursement Summary' });
   };
 
   const handleGenerateAttendance = () => {
-    generateAttendanceReport(year, month, employees, contracts, attendance, settings);
-    toast.success('Attendance Report Generated', { description: `Official attendance records for ${format(new Date(year, month - 1), 'MMMM yyyy')} downloaded.` });
+    const { url, filename } = generateAttendanceReport(year, month, employees, contracts, attendance, settings, true);
+    setPreviewPdf({ url, filename, title: 'Attendance Report' });
   };
 
   const handleGenerateReceipt = (p: any) => {
-    generateIndividualReceipt(p.employee, p.activeContracts[p.activeContracts.length - 1], year, month, attendance[p.employee.id] || {}, settings);
-    toast.success('Individual Receipt Generated', { description: `Receipt for ${p.employee.name} downloaded.` });
+    const { url, filename } = generateIndividualReceipt(p.employee, p.activeContracts[p.activeContracts.length - 1], year, month, attendance[p.employee.id] || {}, settings, true);
+    setPreviewPdf({ url, filename, title: `Receipt - ${p.employee.name}` });
   };
 
   const months = [
@@ -295,6 +298,61 @@ export default function ReportsTab() {
           </div>
         )}
       </div>
+
+      {/* PDF Preview Dialog */}
+      <Dialog
+        open={!!previewPdf}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (previewPdf) URL.revokeObjectURL(previewPdf.url);
+            setPreviewPdf(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col overflow-hidden p-0 sm:rounded-xl">
+          <DialogHeader className="px-6 py-4 border-b border-slate-100 shrink-0 bg-slate-50/50">
+            <DialogTitle className="text-lg font-bold text-slate-800">{previewPdf?.title}</DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">Preview before downloading</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden bg-slate-100/50 relative">
+            {previewPdf && (
+              <PdfViewer
+                file={previewPdf.url}
+                mode="scroll"
+                className="w-full h-full"
+              />
+            )}
+          </div>
+          <DialogFooter className="px-6 py-4 border-t border-slate-100 shrink-0 bg-white">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (previewPdf) URL.revokeObjectURL(previewPdf.url);
+                setPreviewPdf(null);
+              }}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl gap-2"
+              onClick={() => {
+                if (previewPdf) {
+                  const a = document.createElement('a');
+                  a.href = previewPdf.url;
+                  a.download = previewPdf.filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  toast.success('Downloaded', { description: `${previewPdf.title} has been downloaded.` });
+                }
+              }}
+            >
+              <Download className="w-4 h-4" /> Download PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

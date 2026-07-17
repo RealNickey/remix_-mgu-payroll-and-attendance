@@ -10,8 +10,7 @@ export function generateAttendanceReport(
   employees: Employee[],
   contracts: Contract[],
   attendance: AttendanceRecord,
-  settings: Settings
-): void {
+  settings: Settings, asPreview = false): { url: string; filename: string } | void {
   const doc = new jsPDF();
   const monthName = format(new Date(year, month - 1), 'MMMM yyyy');
   
@@ -36,5 +35,9 @@ export function generateAttendanceReport(
     headStyles: { fillColor: [41, 128, 185] },
   });
 
-  doc.save(`Attendance_Report_${monthName}.pdf`);
+  const filename = `Attendance_Report_${monthName}.pdf`;
+  if (asPreview) {
+    return { url: URL.createObjectURL(doc.output('blob')), filename };
+  }
+  doc.save(filename);
 }

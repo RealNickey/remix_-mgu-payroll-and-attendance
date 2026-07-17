@@ -11,8 +11,7 @@ export function generateDisbursementReport(
   employees: Employee[],
   contracts: Contract[],
   attendance: AttendanceRecord,
-  settings: Settings
-): void {
+  settings: Settings, asPreview = false): { url: string; filename: string } | void {
   const doc = new jsPDF();
   const monthName = format(new Date(year, month - 1), 'MMMM yyyy');
   
@@ -46,5 +45,9 @@ export function generateDisbursementReport(
     headStyles: { fillColor: [41, 128, 185] },
   });
 
-  doc.save(`Disbursement_Summary_${monthName}.pdf`);
+  const filename = `Disbursement_Summary_${monthName}.pdf`;
+  if (asPreview) {
+    return { url: URL.createObjectURL(doc.output('blob')), filename };
+  }
+  doc.save(filename);
 }
