@@ -120,6 +120,7 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
   const [selectedMonth, setSelectedMonth] = useState(7)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("")
+  const [openPopoverId, setOpenPopoverId] = useState<string | null>(null)
 
   const years = [currentYear - 1, currentYear, currentYear + 1]
 
@@ -874,27 +875,31 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
                         const sunday = isSunday(date)
 
                         return (
-                          <Popover key={dateStr}>
+                          <Popover 
+                            key={dateStr}
+                            open={openPopoverId === dateStr}
+                            onOpenChange={(open) => setOpenPopoverId(open ? dateStr : null)}
+                          >
                             <PopoverTrigger
                               render={
                                 <button
                                   disabled={!isCovered}
                                   className={cn(
-                                    "relative flex min-h-14 flex-col items-center justify-center rounded-md border p-1 transition-colors hover:bg-muted/50 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none",
+                                    "relative flex min-h-[5rem] flex-col items-center justify-center rounded-lg border p-1.5 transition-all hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:outline-none",
                                     !isCovered
-                                      ? "border-transparent bg-muted/20 opacity-40"
+                                      ? "border-transparent bg-muted/10 opacity-40"
                                       : sunday
-                                        ? "border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10"
+                                        ? "border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20"
                                         : weekend
-                                          ? "border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10"
-                                          : "border-border/50 bg-card shadow-sm"
+                                          ? "border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20"
+                                          : "border-border/60 bg-card shadow-sm hover:border-primary/40 hover:bg-accent/50"
                                   )}
                                 />
                               }
                             >
                               <span
                                 className={cn(
-                                  "text-xs font-bold tabular-nums",
+                                  "text-sm font-bold tabular-nums",
                                   !isCovered
                                     ? "text-muted-foreground/50"
                                     : sunday
@@ -908,35 +913,36 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
                               </span>
 
                               {isCovered && (
-                                <div className="absolute bottom-1.5 flex w-full flex-col items-center gap-1 px-1.5">
+                                <div className="absolute bottom-1.5 flex w-full flex-col items-center gap-1.5 px-2">
                                   {/* FN / AN bars */}
-                                  <div className="flex h-1.5 w-full gap-px overflow-hidden rounded-sm">
+                                  <div className="flex h-2 w-full gap-px overflow-hidden rounded-sm ring-1 ring-border/50">
                                     <div
                                       className={cn(
                                         "flex-1 transition-colors",
-                                        record.fn ? "bg-sky-500" : "bg-muted"
+                                        record.fn ? "bg-sky-500" : "bg-muted/40"
                                       )}
                                     />
                                     <div
                                       className={cn(
                                         "flex-1 transition-colors",
-                                        record.an ? "bg-violet-500" : "bg-muted"
+                                        record.an ? "bg-violet-500" : "bg-muted/40"
                                       )}
                                     />
                                   </div>
                                   {/* OT / HOL dots */}
-                                  <div className="flex h-1 w-full justify-center gap-0.5">
+                                  <div className="flex w-full justify-center gap-1.5">
                                     {record.ot &&
                                       (settings.otRates?.[
                                         selectedEmployee.category
                                       ] ??
                                         settings.otRate ??
                                         0) > 0 && (
-                                        <div className="size-1 rounded-full bg-amber-500" />
+                                        <div className="size-2 rounded-full bg-amber-500 ring-1 ring-amber-500/30" />
                                       )}
                                     {record.holiday && (
-                                      <div className="size-1 rounded-full bg-purple-500" />
+                                      <div className="size-2 rounded-full bg-purple-500 ring-1 ring-purple-500/30" />
                                     )}
+                                    {/* Placeholder dot space if neither are active, keeps layout from jumping if you wanted but flex justify-center is fine */}
                                   </div>
                                 </div>
                               )}

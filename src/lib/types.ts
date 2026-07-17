@@ -34,4 +34,5 @@ export interface WageSettings {
   otRates: Record<JobCategory, number>
   otCeilings: Record<JobCategory, number>
   otRate?: number // kept for backward compatibility
+  section: "Ad.B5" | "Ad.B7" | "Estate 1" | "Estate 2"
 }

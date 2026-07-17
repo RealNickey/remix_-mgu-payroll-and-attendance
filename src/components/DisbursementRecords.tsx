@@ -163,7 +163,8 @@ export const DisbursementRecords: React.FC = () => {
         monthLabel,
         selectedYear,
         cycleStartStrFormatted,
-        cycleEndStrFormatted
+        cycleEndStrFormatted,
+        settings.section
       )
       toast.success("Summary disbursement report downloaded.")
     } catch (e) {
@@ -187,6 +188,7 @@ export const DisbursementRecords: React.FC = () => {
         selectedYear,
         cycleStartStrFormatted,
         cycleEndStrFormatted,
+        settings.section,
         true
       )
       if (result) {
@@ -205,7 +207,7 @@ export const DisbursementRecords: React.FC = () => {
   const handleDownloadAttendanceReport = () => {
     if (payrollData.length === 0) return
     try {
-      generateAttendanceReport(payrollData, monthLabel, selectedYear)
+      generateAttendanceReport(payrollData, monthLabel, selectedYear, settings.section)
       toast.success("General attendance report downloaded.")
     } catch (e) {
       console.error(e)
@@ -220,6 +222,7 @@ export const DisbursementRecords: React.FC = () => {
         payrollData,
         monthLabel,
         selectedYear,
+        settings.section,
         true
       )
       if (result) {
@@ -243,7 +246,8 @@ export const DisbursementRecords: React.FC = () => {
         empAttendance,
         billingCycleDates,
         monthLabel,
-        selectedYear
+        selectedYear,
+        settings.section
       )
       toast.success(`Attendance receipt generated for ${row.name}.`)
     } catch (e) {
@@ -261,6 +265,7 @@ export const DisbursementRecords: React.FC = () => {
         billingCycleDates,
         monthLabel,
         selectedYear,
+        settings.section,
         true
       )
       if (result) {

@@ -11,6 +11,7 @@ export function generateSummaryReport(
   year: number,
   cycleStartStr: string,
   cycleEndStr: string,
+  sectionName?: string,
   asPreview?: boolean
 ): { url: string; filename: string } | void {
   const doc = new jsPDF({
@@ -32,7 +33,8 @@ export function generateSummaryReport(
   doc.setFont("Helvetica", "normal")
   doc.setFontSize(12)
   doc.setTextColor(71, 85, 105) // Slate-600
-  doc.text("AD BIII SECTION", pageWidth / 2, 26, { align: "center" })
+  const displaySection = ((sectionName || "Ad.B5") + " SECTION").toUpperCase()
+  doc.text(displaySection, pageWidth / 2, 26, { align: "center" })
 
   doc.setFont("Helvetica", "bold")
   doc.setFontSize(14)
@@ -124,6 +126,7 @@ export function generateAttendanceReport(
   payroll: PayrollRow[],
   monthName: string,
   year: number,
+  sectionName?: string,
   asPreview?: boolean
 ): { url: string; filename: string } | void {
   const doc = new jsPDF({
@@ -144,7 +147,8 @@ export function generateAttendanceReport(
   doc.setFont("Helvetica", "normal")
   doc.setFontSize(12)
   doc.setTextColor(71, 85, 105)
-  doc.text("AD BIII SECTION", pageWidth / 2, 26, { align: "center" })
+  const displaySection = ((sectionName || "Ad.B5") + " SECTION").toUpperCase()
+  doc.text(displaySection, pageWidth / 2, 26, { align: "center" })
 
   doc.setFont("Helvetica", "bold")
   doc.setFontSize(14)
@@ -400,6 +404,7 @@ export function generateEmployeeReceipt(
   billingCycleDates: Date[],
   monthName: string,
   year: number,
+  sectionName?: string,
   asPreview?: boolean
 ): { url: string; filename: string } | void {
   // Formal Landscape Certificate
@@ -422,7 +427,8 @@ export function generateEmployeeReceipt(
   doc.setFont("Helvetica", "normal")
   doc.setFontSize(11)
   doc.setTextColor(71, 85, 105)
-  doc.text("AD BIII SECTION", pageWidth / 2, 20, { align: "center" })
+  const displaySection = ((sectionName || "Ad.B5") + " SECTION").toUpperCase()
+  doc.text(displaySection, pageWidth / 2, 20, { align: "center" })
 
   doc.setFont("Helvetica", "bold")
   doc.setFontSize(12)
@@ -693,7 +699,8 @@ export function generateSettingsPreview(settings: WageSettings) {
   doc.setFont("Helvetica", "normal")
   doc.setFontSize(12)
   doc.setTextColor(71, 85, 105) // Slate-600
-  doc.text("AD BIII SECTION", pageWidth / 2, 26, { align: "center" })
+  const displaySection = ((settings.section || "Ad.B5") + " SECTION").toUpperCase()
+  doc.text(displaySection, pageWidth / 2, 26, { align: "center" })
 
   doc.setFont("Helvetica", "bold")
   doc.setFontSize(14)

@@ -92,6 +92,7 @@ const defaultSettings: WageSettings = {
     Cooks: 5000,
     Helpers: 5000,
   },
+  section: "Ad.B5",
 }
 
 export const MguDbProvider = ({ children }: { children: ReactNode }) => {
@@ -130,6 +131,7 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
             Helpers: 5000,
           },
           otRate: parsed.otRate,
+          section: parsed.section || "Ad.B5",
         }
         setSettings(normalized)
       }

@@ -30,6 +30,14 @@ import {
 } from "@remixicon/react"
 import { toast } from "sonner"
 import { generateSettingsPreview } from "@/lib/pdfGenerator"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export const SettingsWorkspace = () => {
   const {
@@ -48,6 +56,8 @@ export const SettingsWorkspace = () => {
   const [driversRate, setDriversRate] = useState<number | "">(600)
   const [cooksRate, setCooksRate] = useState<number | "">(550)
   const [helpersRate, setHelpersRate] = useState<number | "">(450)
+
+  const [selectedSection, setSelectedSection] = useState<"Ad.B5" | "Ad.B7" | "Estate 1" | "Estate 2">("Ad.B5")
 
   const [gardenersOtRate, setGardenersOtRate] = useState<number | "">(0)
   const [driversOtRate, setDriversOtRate] = useState<number | "">(100)
@@ -86,6 +96,8 @@ export const SettingsWorkspace = () => {
       setDriversOtCeiling(settings.otCeilings?.Drivers ?? 5000)
       setCooksOtCeiling(settings.otCeilings?.Cooks ?? 5000)
       setHelpersOtCeiling(settings.otCeilings?.Helpers ?? 5000)
+
+      setSelectedSection(settings.section || "Ad.B5")
     }
   }, [settings])
 
@@ -163,6 +175,7 @@ export const SettingsWorkspace = () => {
         Cooks: Number(cooksOtCeiling) || 0,
         Helpers: Number(helpersOtCeiling) || 0,
       },
+      section: selectedSection,
     }
 
     const previousSettings = { ...settings }
@@ -198,6 +211,7 @@ export const SettingsWorkspace = () => {
         Cooks: Number(cooksOtCeiling) || 0,
         Helpers: Number(helpersOtCeiling) || 0,
       },
+      section: selectedSection,
     }
     generateSettingsPreview(previewSettings)
   }
@@ -401,6 +415,38 @@ export const SettingsWorkspace = () => {
         </CardHeader>
         <form onSubmit={handleSave} onKeyDown={handleFormKeyDown}>
           <CardContent className="flex flex-col gap-6">
+            {/* Section Selection */}
+            <div className="rounded-lg border border-border/40 bg-muted/20 p-4 animate-in duration-250 fade-in-50">
+              <h4 className="mb-3 font-heading text-xs font-bold tracking-wider text-primary uppercase">
+                Office Section Designation
+              </h4>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="section-select">
+                    Active Office Section
+                  </FieldLabel>
+                  <Select
+                    value={selectedSection}
+                    onValueChange={(val) =>
+                      setSelectedSection(val as "Ad.B5" | "Ad.B7" | "Estate 1" | "Estate 2")
+                    }
+                  >
+                    <SelectTrigger id="section-select" className="w-full">
+                      <SelectValue placeholder="Select section" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="Ad.B5">Ad.B5</SelectItem>
+                        <SelectItem value="Ad.B7">Ad.B7</SelectItem>
+                        <SelectItem value="Estate 1">Estate 1</SelectItem>
+                        <SelectItem value="Estate 2">Estate 2</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </FieldGroup>
+            </div>
+
             <Accordion
               defaultValue={["base-wages", "ot-rates"]}
               className="w-full"
