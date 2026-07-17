@@ -28,8 +28,11 @@ interface MguDbContextType {
   addEmployee: (
     name: string,
     category: JobCategory,
-    bankAccount: string
+    bankAccount: string,
+    address: string,
+    phone: string
   ) => void
+  updateEmployee: (id: string, updatedFields: Partial<Employee>) => void
   deleteEmployee: (id: string) => void
   addContract: (
     employeeId: string,
@@ -77,7 +80,18 @@ const defaultSettings: WageSettings = {
     Cooks: 550,
     Helpers: 450,
   },
-  otRate: 100,
+  otRates: {
+    Gardeners: 0,
+    Drivers: 100,
+    Cooks: 100,
+    Helpers: 100,
+  },
+  otCeilings: {
+    Gardeners: 0,
+    Drivers: 5000,
+    Cooks: 5000,
+    Helpers: 5000,
+  },
 }
 
 export const MguDbProvider = ({ children }: { children: ReactNode }) => {
@@ -99,7 +113,26 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
       if (storedAttendance) setAttendance(JSON.parse(storedAttendance))
 
       const storedSettings = localStorage.getItem("mgu_settings")
-      if (storedSettings) setSettings(JSON.parse(storedSettings))
+      if (storedSettings) {
+        const parsed = JSON.parse(storedSettings)
+        const normalized: WageSettings = {
+          wageRates: parsed.wageRates || defaultSettings.wageRates,
+          otRates: parsed.otRates || {
+            Gardeners: 0,
+            Drivers: parsed.otRate !== undefined ? parsed.otRate : 100,
+            Cooks: parsed.otRate !== undefined ? parsed.otRate : 100,
+            Helpers: parsed.otRate !== undefined ? parsed.otRate : 100,
+          },
+          otCeilings: parsed.otCeilings || {
+            Gardeners: 0,
+            Drivers: 5000,
+            Cooks: 5000,
+            Helpers: 5000,
+          },
+          otRate: parsed.otRate,
+        }
+        setSettings(normalized)
+      }
     } catch (e) {
       console.error("Error loading MGU data from localStorage", e)
     }
@@ -130,16 +163,27 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
   const addEmployee = (
     name: string,
     category: JobCategory,
-    bankAccount: string
+    bankAccount: string,
+    address: string,
+    phone: string
   ) => {
     const newEmployee: Employee = {
       id: crypto.randomUUID(),
       name,
       category,
       bankAccount,
+      address,
+      phone,
       avatarSeed: Math.random().toString(36).substring(2, 10),
     }
     saveEmployees([...employees, newEmployee])
+  }
+
+  const updateEmployee = (id: string, updatedFields: Partial<Employee>) => {
+    const updatedEmployees = employees.map((emp) =>
+      emp.id === id ? { ...emp, ...updatedFields } : emp
+    )
+    saveEmployees(updatedEmployees)
   }
 
   const deleteEmployee = (id: string) => {
@@ -339,8 +383,8 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
         if (record.fn) regularDays += 0.5
         if (record.an) regularDays += 0.5
 
-        // Overtime: only for Cooks, Helpers, Drivers. Gardeners excluded.
-        if (record.ot && emp.category !== "Gardeners") {
+        // Overtime: based on category rate
+        if (record.ot) {
           otDays += 1
         }
 
@@ -362,7 +406,13 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
 
       const baseRate = settings.wageRates[emp.category] || 0
       const regularPay = regularDays * baseRate
-      const otPay = otDays * settings.otRate
+      
+      const otRate = settings.otRates?.[emp.category] ?? settings.otRate ?? 0
+      const otCeiling = settings.otCeilings?.[emp.category] ?? 5000
+      let otPay = otDays * otRate
+      if (otPay > otCeiling) {
+        otPay = otCeiling
+      }
       const totalPay = regularPay + otPay
 
       results.push({
@@ -391,6 +441,7 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
         attendance,
         settings,
         addEmployee,
+        updateEmployee,
         deleteEmployee,
         addContract,
         voidContract,

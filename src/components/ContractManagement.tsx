@@ -56,9 +56,7 @@ import {
 } from "@remixicon/react"
 import { toast } from "sonner"
 import { DatePicker } from "@/components/ui/date-picker"
-import { DatePickerWithRange } from "@/components/ui/date-range-picker"
-import type { DateRange } from "react-day-picker"
-import { formatDateKey } from "@/lib/payrollUtils"
+import { computeEndDate } from "@/lib/payrollUtils"
 
 interface ContractManagementProps {
   onNavigateToEmployees: () => void
@@ -72,7 +70,7 @@ export const ContractManagement = ({
 
   // Form states
   const [employeeId, setEmployeeId] = useState("")
-  const [contractRange, setContractRange] = useState<DateRange | undefined>()
+  const [startDate, setStartDate] = useState("")
   const [goNumber, setGoNumber] = useState("")
   const [goDate, setGoDate] = useState("")
 
@@ -81,7 +79,7 @@ export const ContractManagement = ({
 
   // Validation
   const [empError, setEmpError] = useState(false)
-  const [rangeError, setRangeError] = useState(false)
+  const [startDateError, setStartDateError] = useState(false)
   const [goError, setGoError] = useState(false)
   const [goDateError, setGoDateError] = useState(false)
 
@@ -120,8 +118,8 @@ export const ContractManagement = ({
           const idAttr = activeElement.getAttribute("id")
           if (idAttr === "goDate") {
             if (!goDate) return
-          } else {
-            if (!contractRange?.from || !contractRange?.to) return
+          } else if (idAttr === "startDate") {
+            if (!startDate) return
           }
         }
 
@@ -157,11 +155,11 @@ export const ContractManagement = ({
       setEmpError(false)
     }
 
-    if (!contractRange?.from || !contractRange?.to) {
-      setRangeError(true)
+    if (!startDate) {
+      setStartDateError(true)
       hasError = true
     } else {
-      setRangeError(false)
+      setStartDateError(false)
     }
 
     if (!goNumber.trim()) {
@@ -184,10 +182,11 @@ export const ContractManagement = ({
     }
 
     const previousContracts = [...contracts]
+    const calculatedEndDate = computeEndDate(startDate)
     addContract(
       employeeId,
-      formatDateKey(contractRange!.from!),
-      formatDateKey(contractRange!.to!),
+      startDate,
+      calculatedEndDate,
       goNumber.trim(),
       goDate
     )
@@ -201,7 +200,7 @@ export const ContractManagement = ({
 
     // Reset Form
     setEmployeeId("")
-    setContractRange(undefined)
+    setStartDate("")
     setGoNumber("")
     setGoDate("")
   }
@@ -342,7 +341,7 @@ export const ContractManagement = ({
                   Issue Service Contract
                 </CardTitle>
                 <CardDescription>
-                  Create a service contract for an employee under a Government
+                  Create a service contract for an employee under a University
                   Order.
                 </CardDescription>
               </CardHeader>
@@ -388,25 +387,35 @@ export const ContractManagement = ({
                       )}
                     </Field>
 
-                    <Field data-invalid={rangeError ? "true" : undefined}>
-                      <FieldLabel>Contract Duration</FieldLabel>
-                      <DatePickerWithRange
-                        date={contractRange}
-                        setDate={(range) => {
-                          setContractRange(range)
-                          setRangeError(false)
+                    <Field data-invalid={startDateError ? "true" : undefined}>
+                      <FieldLabel htmlFor="startDate">Contract Start Date</FieldLabel>
+                      <DatePicker
+                        id="startDate"
+                        value={startDate}
+                        onChange={(val) => {
+                          setStartDate(val)
+                          setStartDateError(false)
                         }}
                       />
-                      {rangeError && (
+                      {startDateError && (
                         <FieldError>
-                          Start and end dates are required.
+                          Start date is required.
                         </FieldError>
+                      )}
+                      {startDate && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Calculated End Date:{" "}
+                          <span className="font-semibold text-foreground">
+                            {new Date(computeEndDate(startDate)).toLocaleDateString("en-GB")}
+                          </span>{" "}
+                          (Total 90 days)
+                        </p>
                       )}
                     </Field>
 
                     <Field data-invalid={goError ? "true" : undefined}>
                       <FieldLabel htmlFor="goNumber">
-                        Government Order No. (G.O.)
+                        University Order No. (U.O.)
                       </FieldLabel>
                       <Input
                         id="goNumber"
@@ -421,7 +430,7 @@ export const ContractManagement = ({
                         aria-invalid={goError ? "true" : undefined}
                       />
                       {goError && (
-                        <FieldError>G.O. Number is required.</FieldError>
+                        <FieldError>U.O. Number is required.</FieldError>
                       )}
                     </Field>
 
@@ -467,7 +476,7 @@ export const ContractManagement = ({
                 <div className="relative w-full sm:w-64">
                   <RiSearchLine className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by Employee/G.O. (e.g., Ramesh)…"
+                    placeholder="Search by Employee/U.O. (e.g., Ramesh)…"
                     name="contract-search"
                     aria-label="Search contracts"
                     className="pl-8"
@@ -501,7 +510,7 @@ export const ContractManagement = ({
                           <TableHead>Employee</TableHead>
                           <TableHead>Contract Term</TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead>G.O. / Issue Date</TableHead>
+                          <TableHead>U.O. / Issue Date</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>

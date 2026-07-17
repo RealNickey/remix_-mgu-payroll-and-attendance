@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useMguDb } from "@/lib/db"
-import type { JobCategory } from "@/lib/types"
+import type { JobCategory, Employee } from "@/lib/types"
 import {
   Card,
   CardHeader,
@@ -52,24 +52,33 @@ import {
   RiUserAddLine,
   RiSearchLine,
   RiContactsLine,
+  RiEditLine,
+  RiSave2Line,
 } from "@remixicon/react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 export const EmployeeProfiles = () => {
-  const { employees, contracts, addEmployee, deleteEmployee, saveEmployees } =
+  const { employees, contracts, addEmployee, updateEmployee, deleteEmployee, saveEmployees } =
     useMguDb()
 
   // Form states
   const [name, setName] = useState("")
   const [category, setCategory] = useState<JobCategory | "">("")
   const [bankAccount, setBankAccount] = useState("")
+  const [address, setAddress] = useState("")
+  const [phone, setPhone] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
 
   // Validation errors
   const [nameError, setNameError] = useState(false)
   const [categoryError, setCategoryError] = useState(false)
   const [bankAccountError, setBankAccountError] = useState(false)
+  const [addressError, setAddressError] = useState(false)
+  const [phoneError, setPhoneError] = useState<string | null>(null)
+
+  // Edit states
+  const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null)
 
   const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
     if (e.key === "Enter") {
@@ -148,24 +157,84 @@ export const EmployeeProfiles = () => {
       setBankAccountError(false)
     }
 
+    if (!address.trim()) {
+      setAddressError(true)
+      hasError = true
+    } else {
+      setAddressError(false)
+    }
+
+    const isPhoneValid = /^\d{10}$/.test(phone.trim())
+    if (!phone.trim()) {
+      setPhoneError("Phone number is required.")
+      hasError = true
+    } else if (!isPhoneValid) {
+      setPhoneError("Phone number must be exactly 10 digits.")
+      hasError = true
+    } else {
+      setPhoneError(null)
+    }
+
     if (hasError) {
-      toast.error("Please fill in all required fields.")
+      toast.error("Please correct the errors in the form.")
       return
     }
 
     const previousEmployees = [...employees]
-    addEmployee(name.trim(), category as JobCategory, bankAccount.trim())
-    toast.success(`Employee "${name.trim()}" registered successfully.`, {
-      action: {
-        label: "Undo",
-        onClick: () => saveEmployees(previousEmployees),
-      },
-    })
+    if (editingEmployeeId) {
+      updateEmployee(editingEmployeeId, {
+        name: name.trim(),
+        category: category as JobCategory,
+        bankAccount: bankAccount.trim(),
+        address: address.trim(),
+        phone: phone.trim(),
+      })
+      toast.success(`Employee "${name.trim()}" updated successfully.`)
+      setEditingEmployeeId(null)
+    } else {
+      addEmployee(name.trim(), category as JobCategory, bankAccount.trim(), address.trim(), phone.trim())
+      toast.success(`Employee "${name.trim()}" registered successfully.`, {
+        action: {
+          label: "Undo",
+          onClick: () => saveEmployees(previousEmployees),
+        },
+      })
+    }
 
     // Reset form
     setName("")
     setCategory("")
     setBankAccount("")
+    setAddress("")
+    setPhone("")
+  }
+
+  const handleStartEdit = (emp: Employee) => {
+    setEditingEmployeeId(emp.id)
+    setName(emp.name)
+    setCategory(emp.category)
+    setBankAccount(emp.bankAccount)
+    setAddress(emp.address || "")
+    setPhone(emp.phone || "")
+    setNameError(false)
+    setCategoryError(false)
+    setBankAccountError(false)
+    setAddressError(false)
+    setPhoneError(null)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingEmployeeId(null)
+    setName("")
+    setCategory("")
+    setBankAccount("")
+    setAddress("")
+    setPhone("")
+    setNameError(false)
+    setCategoryError(false)
+    setBankAccountError(false)
+    setAddressError(false)
+    setPhoneError(null)
   }
 
   const handleDelete = (id: string, empName: string) => {
@@ -177,6 +246,9 @@ export const EmployeeProfiles = () => {
         onClick: () => saveEmployees(previousEmployees),
       },
     })
+    if (editingEmployeeId === id) {
+      handleCancelEdit()
+    }
   }
 
   // Filtered employees
@@ -216,11 +288,22 @@ export const EmployeeProfiles = () => {
         <Card className="border-border/40 bg-card shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-heading text-lg font-bold">
-              <RiUserAddLine className="size-5 text-primary" />
-              Register Employee
+              {editingEmployeeId ? (
+                <>
+                  <RiEditLine className="size-5 text-primary" />
+                  Edit Employee
+                </>
+              ) : (
+                <>
+                  <RiUserAddLine className="size-5 text-primary" />
+                  Register Employee
+                </>
+              )}
             </CardTitle>
             <CardDescription className="text-muted-foreground/80">
-              Add a new contractual staff member to the portal registry.
+              {editingEmployeeId
+                ? "Modify the selected employee's details."
+                : "Add a new contractual staff member to the portal registry."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -293,12 +376,62 @@ export const EmployeeProfiles = () => {
                     <FieldError>Bank Account Number is required.</FieldError>
                   )}
                 </Field>
+
+                <Field data-invalid={phoneError ? "true" : undefined}>
+                  <FieldLabel htmlFor="phone">Phone Number (10 digits)</FieldLabel>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    placeholder="e.g. 9876543210"
+                    maxLength={10}
+                    value={phone}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "")
+                      setPhone(val)
+                      if (val.length === 10) setPhoneError(null)
+                    }}
+                    aria-invalid={phoneError ? "true" : undefined}
+                  />
+                  {phoneError && <FieldError>{phoneError}</FieldError>}
+                </Field>
+
+                <Field data-invalid={addressError ? "true" : undefined}>
+                  <FieldLabel htmlFor="address">Address</FieldLabel>
+                  <Input
+                    id="address"
+                    name="address"
+                    placeholder="e.g. Ward 5, MG University Campus, Kottayam"
+                    value={address}
+                    onChange={(e) => {
+                      setAddress(e.target.value)
+                      if (e.target.value.trim()) setAddressError(false)
+                    }}
+                    aria-invalid={addressError ? "true" : undefined}
+                  />
+                  {addressError && <FieldError>Address is required.</FieldError>}
+                </Field>
               </FieldGroup>
 
-              <Button type="submit" className="mt-2 w-full">
-                <RiUserAddLine data-icon="inline-start" />
-                Add Employee
-              </Button>
+              <div className="flex gap-2 mt-2">
+                {editingEmployeeId && (
+                  <Button type="button" variant="outline" className="flex-1" onClick={handleCancelEdit}>
+                    Cancel
+                  </Button>
+                )}
+                <Button type="submit" className="flex-1">
+                  {editingEmployeeId ? (
+                    <>
+                      <RiSave2Line data-icon="inline-start" />
+                      Save Changes
+                    </>
+                  ) : (
+                    <>
+                      <RiUserAddLine data-icon="inline-start" />
+                      Add Employee
+                    </>
+                  )}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
@@ -393,9 +526,11 @@ export const EmployeeProfiles = () => {
                           <span className="mr-2 font-mono text-xs text-muted-foreground">
                             ID: {emp.id.substring(0, 8)}
                           </span>
-                          <span className="hidden font-mono text-xs text-muted-foreground sm:inline">
-                            A/C: {emp.bankAccount}
-                          </span>
+                          <div className="mt-1.5 flex flex-col gap-1 text-[11px] text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-x-3">
+                            <span>A/C: {emp.bankAccount}</span>
+                            {emp.phone && <span>Ph: {emp.phone}</span>}
+                            {emp.address && <span className="max-w-xs truncate sm:max-w-md">Addr: {emp.address}</span>}
+                          </div>
                         </ItemDescription>
                       </ItemContent>
                       <ItemActions className="gap-3 sm:gap-4">
@@ -410,6 +545,15 @@ export const EmployeeProfiles = () => {
                             {cCount}
                           </Badge>
                         </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="size-8 opacity-0 transition-opacity group-hover/row:opacity-100"
+                          onClick={() => handleStartEdit(emp)}
+                          title="Edit Profile"
+                        >
+                          <RiEditLine className="size-4" />
+                        </Button>
                         <AlertDialog>
                           <AlertDialogTrigger
                             render={

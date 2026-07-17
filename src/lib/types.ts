@@ -6,6 +6,8 @@ export interface Employee {
   category: JobCategory
   bankAccount: string
   avatarSeed?: string
+  address?: string
+  phone?: string
 }
 
 export interface Contract {
@@ -29,5 +31,7 @@ export type AttendanceData = Record<string, Record<string, AttendanceRecord>>
 
 export interface WageSettings {
   wageRates: Record<JobCategory, number>
-  otRate: number
+  otRates: Record<JobCategory, number>
+  otCeilings: Record<JobCategory, number>
+  otRate?: number // kept for backward compatibility
 }

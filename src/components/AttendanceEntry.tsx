@@ -107,6 +107,7 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
     batchMarkAllPresent,
     batchClearAll,
     saveAttendance,
+    settings,
   } = useMguDb()
 
   const currentYear = new Date().getFullYear()
@@ -230,7 +231,7 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
       if (record) {
         if (record.fn) regularDays += 0.5
         if (record.an) regularDays += 0.5
-        if (record.ot && selectedEmployee?.category !== "Gardeners") otDays += 1
+        if (record.ot && selectedEmployee && (settings.otRates?.[selectedEmployee.category] ?? settings.otRate ?? 0) > 0) otDays += 1
         if (record.holiday && (record.fn || record.an)) holidayDays += 1
       }
     })
@@ -241,6 +242,7 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
     billingCycleDates,
     contracts,
     selectedEmployee,
+    settings,
   ])
 
   const attendancePct = liveSummary.coveredDays
@@ -979,8 +981,8 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
                             AN
                           </Toggle>
 
-                          {/* OT toggle (hidden for Gardeners) */}
-                          {selectedEmployee.category !== "Gardeners" ? (
+                          {/* OT toggle (hidden if OT rate is 0) */}
+                          {(settings.otRates?.[selectedEmployee.category] ?? settings.otRate ?? 0) > 0 ? (
                             <Toggle
                               size="sm"
                               variant="outline"

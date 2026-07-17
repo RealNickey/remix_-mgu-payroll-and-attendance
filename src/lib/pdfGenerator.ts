@@ -1,6 +1,7 @@
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import type { PayrollRow } from "./db"
+import type { WageSettings, JobCategory } from "./types"
 import { formatIndianRupees, daysToWords, formatDateKey } from "./payrollUtils"
 
 export function generateSummaryReport(
@@ -246,7 +247,7 @@ export function generateEmployeeReceipt(
     { align: "center" }
   )
 
-  // 2. Employee Info & Contract G.O. details
+  // 2. Employee Info & Contract U.O. details
   doc.setFont("Helvetica", "normal")
   doc.setFontSize(10)
   doc.setTextColor(15, 23, 42)
@@ -255,7 +256,7 @@ export function generateEmployeeReceipt(
   doc.text(`Name of Employee: Sri/Smt. ${row.name}`, margin, 35)
   doc.text(`Designation: ${row.category}`, margin, 40)
 
-  // Right Details (G.O. reference)
+  // Right Details (U.O. reference)
   const goNumber =
     row.relevantContract?.goNumber ||
     "......................................................."
@@ -265,7 +266,7 @@ export function generateEmployeeReceipt(
     goDateFormatted = `${dParts[2]}/${dParts[1]}/${dParts[0]}`
   }
 
-  doc.text(`G.O. No: ${goNumber}`, pageWidth - margin - 120, 35)
+  doc.text(`U.O. No: ${goNumber}`, pageWidth - margin - 120, 35)
   doc.text(`Order Issue Date: ${goDateFormatted}`, pageWidth - margin - 120, 40)
 
   // 3. Grid Table
@@ -383,4 +384,146 @@ export function generateEmployeeReceipt(
   // Save PDF
   const sanitizedEmployeeName = row.name.replace(/[^a-zA-Z0-9]/g, "_")
   doc.save(`Receipt_${sanitizedEmployeeName}_${monthName}_${year}.pdf`)
+}
+
+export function generateSettingsPreview(settings: WageSettings) {
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  })
+
+  const pageWidth = doc.internal.pageSize.width
+  const margin = 14
+
+  // Header / Title Block
+  doc.setFont("Helvetica", "bold")
+  doc.setFontSize(16)
+  doc.setTextColor(30, 41, 59) // Slate-800
+  doc.text("MAHATMA GANDHI UNIVERSITY", pageWidth / 2, 20, { align: "center" })
+
+  doc.setFont("Helvetica", "normal")
+  doc.setFontSize(12)
+  doc.setTextColor(71, 85, 105) // Slate-600
+  doc.text("AD BIII SECTION", pageWidth / 2, 26, { align: "center" })
+
+  doc.setFont("Helvetica", "bold")
+  doc.setFontSize(14)
+  doc.setTextColor(15, 23, 42) // Slate-900
+  doc.text("Wage & Overtime Policy Configuration", pageWidth / 2, 34, {
+    align: "center",
+  })
+
+  // Date details
+  doc.setFont("Helvetica", "normal")
+  doc.setFontSize(10)
+  doc.setTextColor(100)
+  doc.text(
+    `Policy Status: Proposed / Active`,
+    margin,
+    44
+  )
+  doc.text(
+    `Export Date: ${new Date().toLocaleDateString("en-GB")}`,
+    pageWidth - margin,
+    44,
+    { align: "right" }
+  )
+
+  // Divider line
+  doc.setDrawColor(203, 213, 225) // Slate-300
+  doc.setLineWidth(0.5)
+  doc.line(margin, 46, pageWidth - margin, 46)
+
+  // Table Data setup
+  const categories: JobCategory[] = ["Gardeners", "Drivers", "Cooks", "Helpers"]
+  const tableData = categories.map((cat, index) => {
+    const dailyWage = settings.wageRates[cat] || 0
+    const otRate = settings.otRates?.[cat] ?? settings.otRate ?? 0
+    const otCeiling = settings.otCeilings?.[cat] ?? 0
+    return [
+      index + 1,
+      cat,
+      formatIndianRupees(dailyWage),
+      formatIndianRupees(otRate),
+      formatIndianRupees(otCeiling),
+    ]
+  })
+
+  autoTable(doc, {
+    startY: 50,
+    head: [
+      [
+        "Sl. No.",
+        "Employee Category",
+        "Daily Base Wage Rate (₹)",
+        "Overtime Rate (₹ / Day)",
+        "Overtime Monthly Ceiling (₹)",
+      ],
+    ],
+    body: tableData,
+    theme: "striped",
+    headStyles: {
+      fillColor: [15, 23, 42], // Dark Slate
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      fontSize: 10,
+    },
+    bodyStyles: {
+      fontSize: 9,
+      textColor: [51, 65, 85],
+    },
+    columnStyles: {
+      0: { cellWidth: 15, halign: "center" },
+      1: { cellWidth: 45 },
+      2: { cellWidth: 40, halign: "right" },
+      3: { cellWidth: 40, halign: "right" },
+      4: { cellWidth: 40, halign: "right" },
+    },
+    margin: { left: margin, right: margin },
+  })
+
+  const tableBottom = (doc as any).lastAutoTable.finalY || 80
+
+  // Summary and Rules
+  doc.setFont("Helvetica", "bold")
+  doc.setFontSize(10.5)
+  doc.setTextColor(30, 41, 59)
+  doc.text("Policy Guidelines & Calculations:", margin, tableBottom + 12)
+
+  doc.setFont("Helvetica", "normal")
+  doc.setFontSize(9.5)
+  doc.setTextColor(71, 85, 105)
+  
+  const guidelines = [
+    "1. Daily Base Wages are computed for both Forenoon (FN) and Afternoon (AN) sessions.",
+    "2. Overtime is logged in days and calculated using the category-specific Overtime Rate.",
+    "3. Overtime pay for any individual employee is strictly capped at the designated Monthly Ceiling.",
+    "4. If a category's Overtime Rate is set to 0, overtime pay calculations are disabled for that category.",
+  ]
+
+  guidelines.forEach((g, idx) => {
+    doc.text(g, margin + 2, tableBottom + 18 + idx * 6)
+  })
+
+  // Signatories block
+  const sigY = doc.internal.pageSize.height - 25
+  const colWidth = (pageWidth - margin * 2) / 3
+
+  doc.setFont("Helvetica", "normal")
+  doc.setFontSize(9)
+
+  const signatories = [
+    { title: "Prepared By (Section Assistant)", x: margin + colWidth * 0.5 },
+    { title: "Verified By (Section Officer)", x: margin + colWidth * 1.5 },
+    { title: "Approved By (Registrar)", x: margin + colWidth * 2.5 },
+  ]
+
+  signatories.forEach((sig) => {
+    doc.setDrawColor(148, 163, 184)
+    doc.line(sig.x - 25, sigY - 5, sig.x + 25, sigY - 5)
+    doc.text(sig.title, sig.x, sigY, { align: "center" })
+  })
+
+  doc.save("Wage_and_Overtime_Rates_Policy.pdf")
 }

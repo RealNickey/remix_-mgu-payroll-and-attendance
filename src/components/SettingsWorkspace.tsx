@@ -29,6 +29,7 @@ import {
   RiAlertLine,
 } from "@remixicon/react"
 import { toast } from "sonner"
+import { generateSettingsPreview } from "@/lib/pdfGenerator"
 
 export const SettingsWorkspace = () => {
   const {
@@ -47,7 +48,16 @@ export const SettingsWorkspace = () => {
   const [driversRate, setDriversRate] = useState<number | "">(600)
   const [cooksRate, setCooksRate] = useState<number | "">(550)
   const [helpersRate, setHelpersRate] = useState<number | "">(450)
-  const [otRate, setOtRate] = useState<number | "">(100)
+
+  const [gardenersOtRate, setGardenersOtRate] = useState<number | "">(0)
+  const [driversOtRate, setDriversOtRate] = useState<number | "">(100)
+  const [cooksOtRate, setCooksOtRate] = useState<number | "">(100)
+  const [helpersOtRate, setHelpersOtRate] = useState<number | "">(100)
+
+  const [gardenersOtCeiling, setGardenersOtCeiling] = useState<number | "">(0)
+  const [driversOtCeiling, setDriversOtCeiling] = useState<number | "">(5000)
+  const [cooksOtCeiling, setCooksOtCeiling] = useState<number | "">(5000)
+  const [helpersOtCeiling, setHelpersOtCeiling] = useState<number | "">(5000)
 
   // Import states
   const [importData, setImportData] = useState<any>(null)
@@ -66,7 +76,16 @@ export const SettingsWorkspace = () => {
       setDriversRate(settings.wageRates.Drivers)
       setCooksRate(settings.wageRates.Cooks)
       setHelpersRate(settings.wageRates.Helpers)
-      setOtRate(settings.otRate)
+
+      setGardenersOtRate(settings.otRates?.Gardeners ?? 0)
+      setDriversOtRate(settings.otRates?.Drivers ?? 100)
+      setCooksOtRate(settings.otRates?.Cooks ?? 100)
+      setHelpersOtRate(settings.otRates?.Helpers ?? 100)
+
+      setGardenersOtCeiling(settings.otCeilings?.Gardeners ?? 0)
+      setDriversOtCeiling(settings.otCeilings?.Drivers ?? 5000)
+      setCooksOtCeiling(settings.otCeilings?.Cooks ?? 5000)
+      setHelpersOtCeiling(settings.otCeilings?.Helpers ?? 5000)
     }
   }, [settings])
 
@@ -128,7 +147,18 @@ export const SettingsWorkspace = () => {
         Cooks: Number(cooksRate) || 0,
         Helpers: Number(helpersRate) || 0,
       },
-      otRate: Number(otRate) || 0,
+      otRates: {
+        Gardeners: Number(gardenersOtRate) || 0,
+        Drivers: Number(driversOtRate) || 0,
+        Cooks: Number(cooksOtRate) || 0,
+        Helpers: Number(helpersOtRate) || 0,
+      },
+      otCeilings: {
+        Gardeners: Number(gardenersOtCeiling) || 0,
+        Drivers: Number(driversOtCeiling) || 0,
+        Cooks: Number(cooksOtCeiling) || 0,
+        Helpers: Number(helpersOtCeiling) || 0,
+      },
     }
 
     const previousSettings = { ...settings }
@@ -142,6 +172,30 @@ export const SettingsWorkspace = () => {
         },
       }
     )
+  }
+
+  const handlePdfPreview = () => {
+    const previewSettings: WageSettings = {
+      wageRates: {
+        Gardeners: Number(gardenersRate) || 0,
+        Drivers: Number(driversRate) || 0,
+        Cooks: Number(cooksRate) || 0,
+        Helpers: Number(helpersRate) || 0,
+      },
+      otRates: {
+        Gardeners: Number(gardenersOtRate) || 0,
+        Drivers: Number(driversOtRate) || 0,
+        Cooks: Number(cooksOtRate) || 0,
+        Helpers: Number(helpersOtRate) || 0,
+      },
+      otCeilings: {
+        Gardeners: Number(gardenersOtCeiling) || 0,
+        Drivers: Number(driversOtCeiling) || 0,
+        Cooks: Number(cooksOtCeiling) || 0,
+        Helpers: Number(helpersOtCeiling) || 0,
+      },
+    }
+    generateSettingsPreview(previewSettings)
   }
 
   const handleExport = () => {
@@ -297,9 +351,8 @@ export const SettingsWorkspace = () => {
         </AlertTitle>
         <AlertDescription className="mt-1 text-xs">
           Modifying these rates will immediately re-compute payroll totals for
-          all billing cycles. Overtime pay rules are locked:{" "}
-          <strong>Gardeners are strictly excluded from overtime pay</strong>{" "}
-          regardless of any OT attendance records.
+          all billing cycles. Overtime charges and monthly ceilings are configured
+          per employee category below.
         </AlertDescription>
       </Alert>
 
@@ -406,35 +459,127 @@ export const SettingsWorkspace = () => {
 
               <AccordionItem value="ot-rates" className="border-b-0">
                 <AccordionTrigger className="py-3 font-heading text-xs font-bold tracking-wider text-muted-foreground uppercase hover:no-underline">
-                  Overtime Rate Configuration
+                  Overtime & Monthly Ceiling Configuration
                 </AccordionTrigger>
                 <AccordionContent className="pt-2 pb-4">
-                  <FieldGroup>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <Field>
-                        <FieldLabel htmlFor="otRate">
-                          Flat Overtime Rate (₹ / Day)
-                        </FieldLabel>
-                        <Input
-                          id="otRate"
-                          type="number"
-                          value={otRate}
-                          onChange={(e) =>
-                            setOtRate(
-                              e.target.value === ""
-                                ? ""
-                                : Number(e.target.value)
-                            )
-                          }
-                        />
-                      </Field>
+                  <div className="flex flex-col gap-6">
+                    {/* Gardeners */}
+                    <div className="rounded-lg border border-border/40 p-4 bg-muted/20">
+                      <h4 className="font-heading text-xs font-bold tracking-wider text-primary mb-3 uppercase">Gardeners</h4>
+                      <FieldGroup>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <Field>
+                            <FieldLabel htmlFor="gardenersOtRate">Overtime Rate (₹ / Day)</FieldLabel>
+                            <Input
+                              id="gardenersOtRate"
+                              type="number"
+                              value={gardenersOtRate}
+                              onChange={(e) => setGardenersOtRate(e.target.value === "" ? "" : Number(e.target.value))}
+                            />
+                          </Field>
+                          <Field>
+                            <FieldLabel htmlFor="gardenersOtCeiling">Monthly Ceiling (₹)</FieldLabel>
+                            <Input
+                              id="gardenersOtCeiling"
+                              type="number"
+                              value={gardenersOtCeiling}
+                              onChange={(e) => setGardenersOtCeiling(e.target.value === "" ? "" : Number(e.target.value))}
+                            />
+                          </Field>
+                        </div>
+                      </FieldGroup>
                     </div>
-                  </FieldGroup>
+
+                    {/* Drivers */}
+                    <div className="rounded-lg border border-border/40 p-4 bg-muted/20">
+                      <h4 className="font-heading text-xs font-bold tracking-wider text-primary mb-3 uppercase">Drivers</h4>
+                      <FieldGroup>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <Field>
+                            <FieldLabel htmlFor="driversOtRate">Overtime Rate (₹ / Day)</FieldLabel>
+                            <Input
+                              id="driversOtRate"
+                              type="number"
+                              value={driversOtRate}
+                              onChange={(e) => setDriversOtRate(e.target.value === "" ? "" : Number(e.target.value))}
+                            />
+                          </Field>
+                          <Field>
+                            <FieldLabel htmlFor="driversOtCeiling">Monthly Ceiling (₹)</FieldLabel>
+                            <Input
+                              id="driversOtCeiling"
+                              type="number"
+                              value={driversOtCeiling}
+                              onChange={(e) => setDriversOtCeiling(e.target.value === "" ? "" : Number(e.target.value))}
+                            />
+                          </Field>
+                        </div>
+                      </FieldGroup>
+                    </div>
+
+                    {/* Cooks */}
+                    <div className="rounded-lg border border-border/40 p-4 bg-muted/20">
+                      <h4 className="font-heading text-xs font-bold tracking-wider text-primary mb-3 uppercase">Cooks</h4>
+                      <FieldGroup>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <Field>
+                            <FieldLabel htmlFor="cooksOtRate">Overtime Rate (₹ / Day)</FieldLabel>
+                            <Input
+                              id="cooksOtRate"
+                              type="number"
+                              value={cooksOtRate}
+                              onChange={(e) => setCooksOtRate(e.target.value === "" ? "" : Number(e.target.value))}
+                            />
+                          </Field>
+                          <Field>
+                            <FieldLabel htmlFor="cooksOtCeiling">Monthly Ceiling (₹)</FieldLabel>
+                            <Input
+                              id="cooksOtCeiling"
+                              type="number"
+                              value={cooksOtCeiling}
+                              onChange={(e) => setCooksOtCeiling(e.target.value === "" ? "" : Number(e.target.value))}
+                            />
+                          </Field>
+                        </div>
+                      </FieldGroup>
+                    </div>
+
+                    {/* Helpers */}
+                    <div className="rounded-lg border border-border/40 p-4 bg-muted/20">
+                      <h4 className="font-heading text-xs font-bold tracking-wider text-primary mb-3 uppercase">Helpers</h4>
+                      <FieldGroup>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <Field>
+                            <FieldLabel htmlFor="helpersOtRate">Overtime Rate (₹ / Day)</FieldLabel>
+                            <Input
+                              id="helpersOtRate"
+                              type="number"
+                              value={helpersOtRate}
+                              onChange={(e) => setHelpersOtRate(e.target.value === "" ? "" : Number(e.target.value))}
+                            />
+                          </Field>
+                          <Field>
+                            <FieldLabel htmlFor="helpersOtCeiling">Monthly Ceiling (₹)</FieldLabel>
+                            <Input
+                              id="helpersOtCeiling"
+                              type="number"
+                              value={helpersOtCeiling}
+                              onChange={(e) => setHelpersOtCeiling(e.target.value === "" ? "" : Number(e.target.value))}
+                            />
+                          </Field>
+                        </div>
+                      </FieldGroup>
+                    </div>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
           </CardContent>
-          <CardFooter className="flex justify-end border-t pt-4">
+          <CardFooter className="flex justify-between items-center border-t pt-4">
+            <Button type="button" variant="outline" onClick={handlePdfPreview}>
+              <RiDownload2Line data-icon="inline-start" />
+              PDF Preview Policy
+            </Button>
             <Button type="submit">
               <RiSave2Line data-icon="inline-start" />
               Save Changes
