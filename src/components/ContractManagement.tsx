@@ -457,12 +457,28 @@ export const ContractManagement = ({
 
                     <Field data-invalid={startDateError ? "true" : undefined}>
                       <FieldLabel htmlFor="contractPeriod">Contract Period</FieldLabel>
-                      <DatePickerWithRange
-                        id="contractPeriod"
-                        date={dateRange}
-                        setDate={() => {}}
-                        onSelect={handleRangeSelect}
-                      />
+                      <div className="flex items-center gap-2">
+                        <DatePickerWithRange
+                          id="contractPeriod"
+                          className="flex-1"
+                          date={dateRange}
+                          setDate={() => {}}
+                          onSelect={handleRangeSelect}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setStartDate("")
+                            setEndDate("")
+                            setIsSelectingTo(false)
+                          }}
+                          disabled={!startDate && !endDate}
+                          className="h-9 px-3 shrink-0"
+                        >
+                          Reset
+                        </Button>
+                      </div>
                       {startDateError && (
                         <FieldError>
                           Contract period is required.
