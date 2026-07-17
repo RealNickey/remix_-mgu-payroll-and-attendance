@@ -38,6 +38,11 @@ import {
 import { Toggle } from "@/components/ui/toggle"
 import { EmployeeAvatar } from "@/components/ui/employee-avatar"
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
   Combobox,
   ComboboxContent,
   ComboboxEmpty,
@@ -310,11 +315,7 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
 
   const isSunday = (date: Date) => date.getDay() === 0
 
-  const formatDateLabel = (date: Date) => {
-    const day = String(date.getDate()).padStart(2, "0")
-    const weekday = date.toLocaleDateString("en-US", { weekday: "short" })
-    return { day, weekday }
-  }
+
 
   const selectedMonthLabel =
     MONTHS.find((m) => m.value === selectedMonth)?.label ?? ""
@@ -832,199 +833,139 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
                   </div>
                 )}
 
-                {/* ── Column headers ───────────────────────────────────────────── */}
-                {isSelectedEmpCoveredForCycle && (
-                  <div className="shrink-0 px-4 pt-3 pb-1">
-                    <div className="grid grid-cols-[auto_1fr_repeat(4,auto)] items-center gap-x-2 pr-2 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-                      <span className="w-[80px]">Date</span>
-                      <span />
-                      <span className="w-9 text-center text-sky-600 dark:text-sky-400">
-                        FN
-                      </span>
-                      <span className="w-9 text-center text-violet-600 dark:text-violet-400">
-                        AN
-                      </span>
-                      {selectedEmployee.category !== "Gardeners" && (
-                        <span className="w-9 text-center text-amber-600 dark:text-amber-400">
-                          OT
-                        </span>
-                      )}
-                      <span className="w-9 text-center text-purple-600 dark:text-purple-400">
-                        HOL
-                      </span>
-                    </div>
-                    <Separator className="mt-1" />
-                  </div>
-                )}
-
-                {/* ── Scrollable date grid ─────────────────────────────────────── */}
+                {/* ── Calendar Grid ───────────────────────────────────────────── */}
                 <ScrollArea className="min-h-0 flex-1">
-                  <div className="flex flex-col gap-0.5 px-4 pt-1 pb-3">
-                    {billingCycleDates.map((date) => {
-                      const dateStr = formatDateKey(date)
-                      const isCovered = isDateCoveredByContract(
-                        contracts,
-                        selectedEmployeeId,
-                        dateStr
-                      )
-                      const record = getAttendanceRecord(dateStr)
-                      const weekend = isWeekend(date)
-                      const sunday = isSunday(date)
-                      const { day, weekday } = formatDateLabel(date)
-
-                      return (
-                        <div
-                          key={dateStr}
-                          className={cn(
-                            "grid grid-cols-[auto_1fr_repeat(4,auto)] items-center gap-x-2 rounded-md px-2 py-1.5 transition-colors border-l-2",
-                            !isCovered
-                              ? "opacity-40 border-transparent"
-                              : sunday
-                                ? "bg-rose-500/6 dark:bg-rose-500/10 border-rose-500 hover:bg-rose-500/10 dark:hover:bg-rose-500/15"
-                                : weekend
-                                  ? "bg-amber-500/6 dark:bg-amber-500/10 border-amber-500/60 hover:bg-amber-500/10 dark:hover:bg-amber-500/15"
-                                  : "border-transparent hover:bg-muted/40"
-                          )}
-                        >
-                          {/* Date label */}
-                          <div className="flex w-[80px] shrink-0 items-center gap-1.5">
-                            <span
-                              className={cn(
-                                "font-mono text-xs font-bold tabular-nums",
-                                !isCovered
-                                  ? "text-muted-foreground/50"
-                                  : sunday
-                                    ? "text-rose-500 dark:text-rose-400"
-                                    : weekend
-                                      ? "text-amber-600 dark:text-amber-400"
-                                      : "text-foreground"
-                              )}
-                            >
-                              {day}
-                            </span>
-                            <span
-                              className={cn(
-                                "text-[10px] font-semibold tracking-wide uppercase",
-                                !isCovered
-                                  ? "text-muted-foreground/40"
-                                  : sunday
-                                    ? "text-rose-400 dark:text-rose-500"
-                                    : weekend
-                                      ? "text-amber-500 dark:text-amber-600"
-                                      : "text-muted-foreground"
-                              )}
-                            >
-                              {weekday}
-                            </span>
-                          </div>
-
-                          {/* Attendance fill indicator */}
-                          <div className="flex items-center">
-                            {isCovered && (
-                              <div className="flex h-2.5 w-full max-w-[60px] gap-px">
-                                <div
-                                  className={cn(
-                                    "flex-1 rounded-l-full transition-colors",
-                                    record.fn ? "bg-sky-500" : "bg-muted/60"
-                                  )}
-                                />
-                                <div
-                                  className={cn(
-                                    "flex-1 rounded-r-full transition-colors",
-                                    record.an ? "bg-violet-500" : "bg-muted/60"
-                                  )}
-                                />
-                              </div>
-                            )}
-                            {!isCovered && (
-                              <span className="text-[9px] font-medium tracking-wide text-muted-foreground/50 italic">
-                                outside contract
+                  <div className="p-4">
+                    {/* Days of week header */}
+                    <div className="mb-2 grid grid-cols-7 gap-2 text-center text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+                        <div key={day}>{day}</div>
+                      ))}
+                    </div>
+                    
+                    {/* Calendar cells */}
+                    <div className="grid grid-cols-7 gap-2">
+                      {billingCycleDates.length > 0 && Array.from({ length: billingCycleDates[0].getDay() }).map((_, i) => (
+                        <div key={`empty-${i}`} className="min-h-16 rounded-md border border-transparent bg-transparent" />
+                      ))}
+                      
+                      {billingCycleDates.map((date) => {
+                        const dateStr = formatDateKey(date)
+                        const isCovered = isDateCoveredByContract(
+                          contracts,
+                          selectedEmployeeId,
+                          dateStr
+                        )
+                        const record = getAttendanceRecord(dateStr)
+                        const weekend = isWeekend(date)
+                        const sunday = isSunday(date)
+                        
+                        return (
+                          <Popover key={dateStr}>
+                            <PopoverTrigger render={
+                              <button
+                                disabled={!isCovered}
+                                className={cn(
+                                  "relative flex min-h-14 flex-col items-center justify-center rounded-md border p-1 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                                  !isCovered ? "opacity-40 border-transparent bg-muted/20" : 
+                                  sunday ? "border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10" : 
+                                  weekend ? "border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10" : 
+                                  "border-border/50 bg-card shadow-sm"
+                                )}
+                              />
+                            }>
+                              <span className={cn(
+                                "text-xs font-bold tabular-nums",
+                                !isCovered ? "text-muted-foreground/50" :
+                                sunday ? "text-rose-500 dark:text-rose-400" :
+                                weekend ? "text-amber-600 dark:text-amber-400" :
+                                "text-foreground"
+                              )}>
+                                {date.getDate()}
                               </span>
-                            )}
-                          </div>
-
-                          {/* FN toggle */}
-                          <Toggle
-                            size="sm"
-                            variant="outline"
-                            pressed={record.fn}
-                            onPressedChange={() =>
-                              isCovered && handleToggle(dateStr, "fn")
-                            }
-                            disabled={!isCovered}
-                            className={cn(
-                              "size-9 text-[10px] font-bold transition-all",
-                              record.fn
-                                ? "border-sky-500 bg-sky-500 text-white hover:bg-sky-600 hover:text-white aria-pressed:bg-sky-500 aria-pressed:text-white"
-                                : "text-muted-foreground"
-                            )}
-                          >
-                            FN
-                          </Toggle>
-
-                          {/* AN toggle */}
-                          <Toggle
-                            size="sm"
-                            variant="outline"
-                            pressed={record.an}
-                            onPressedChange={() =>
-                              isCovered && handleToggle(dateStr, "an")
-                            }
-                            disabled={!isCovered}
-                            className={cn(
-                              "size-9 text-[10px] font-bold transition-all",
-                              record.an
-                                ? "border-violet-500 bg-violet-500 text-white hover:bg-violet-600 hover:text-white aria-pressed:bg-violet-500 aria-pressed:text-white"
-                                : "text-muted-foreground"
-                            )}
-                          >
-                            AN
-                          </Toggle>
-
-                          {/* OT toggle (hidden if OT rate is 0) */}
-                          {(settings.otRates?.[selectedEmployee.category] ?? settings.otRate ?? 0) > 0 ? (
-                            <Toggle
-                              size="sm"
-                              variant="outline"
-                              pressed={record.ot}
-                              onPressedChange={() =>
-                                isCovered && handleToggle(dateStr, "ot")
-                              }
-                              disabled={!isCovered}
-                              className={cn(
-                                "size-9 text-[10px] font-bold transition-all",
-                                record.ot
-                                  ? "border-amber-500 bg-amber-500 text-white hover:bg-amber-600 hover:text-white aria-pressed:bg-amber-500 aria-pressed:text-white"
-                                  : "text-muted-foreground"
+                              
+                              {isCovered && (
+                                <div className="absolute bottom-1.5 flex w-full flex-col items-center gap-1 px-1.5">
+                                  {/* FN / AN bars */}
+                                  <div className="flex h-1.5 w-full gap-px overflow-hidden rounded-sm">
+                                    <div className={cn("flex-1 transition-colors", record.fn ? "bg-sky-500" : "bg-muted")} />
+                                    <div className={cn("flex-1 transition-colors", record.an ? "bg-violet-500" : "bg-muted")} />
+                                  </div>
+                                  {/* OT / HOL dots */}
+                                  <div className="flex h-1 w-full justify-center gap-0.5">
+                                    {record.ot && (settings.otRates?.[selectedEmployee.category] ?? settings.otRate ?? 0) > 0 && (
+                                      <div className="size-1 rounded-full bg-amber-500" />
+                                    )}
+                                    {record.holiday && (
+                                      <div className="size-1 rounded-full bg-purple-500" />
+                                    )}
+                                  </div>
+                                </div>
                               )}
-                            >
-                              OT
-                            </Toggle>
-                          ) : (
-                            <div className="size-9" />
-                          )}
-
-                          {/* HOL toggle */}
-                          <Toggle
-                            size="sm"
-                            variant="outline"
-                            pressed={record.holiday}
-                            onPressedChange={() =>
-                              isCovered && handleToggle(dateStr, "holiday")
-                            }
-                            disabled={!isCovered}
-                            className={cn(
-                              "size-9 text-[9px] font-bold transition-all",
-                              record.holiday
-                                ? "border-purple-500 bg-purple-500 text-white hover:bg-purple-600 hover:text-white aria-pressed:bg-purple-500 aria-pressed:text-white"
-                                : "text-muted-foreground"
-                            )}
-                          >
-                            HOL
-                          </Toggle>
-                        </div>
-                      )
-                    })}
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[180px] p-3" align="center">
+                              <div className="mb-2.5 text-center text-xs font-semibold text-muted-foreground">
+                                {date.toLocaleDateString("en-US", { weekday: 'long', month: 'short', day: 'numeric' })}
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <Toggle
+                                  size="sm"
+                                  variant="outline"
+                                  pressed={record.fn}
+                                  onPressedChange={() => handleToggle(dateStr, "fn")}
+                                  className={cn(
+                                    "h-8 text-[10px] font-bold transition-all",
+                                    record.fn ? "border-sky-500 bg-sky-500 text-white hover:bg-sky-600 hover:text-white aria-pressed:bg-sky-500 aria-pressed:text-white" : "text-muted-foreground"
+                                  )}
+                                >
+                                  FN
+                                </Toggle>
+                                <Toggle
+                                  size="sm"
+                                  variant="outline"
+                                  pressed={record.an}
+                                  onPressedChange={() => handleToggle(dateStr, "an")}
+                                  className={cn(
+                                    "h-8 text-[10px] font-bold transition-all",
+                                    record.an ? "border-violet-500 bg-violet-500 text-white hover:bg-violet-600 hover:text-white aria-pressed:bg-violet-500 aria-pressed:text-white" : "text-muted-foreground"
+                                  )}
+                                >
+                                  AN
+                                </Toggle>
+                                {(settings.otRates?.[selectedEmployee.category] ?? settings.otRate ?? 0) > 0 ? (
+                                  <Toggle
+                                    size="sm"
+                                    variant="outline"
+                                    pressed={record.ot}
+                                    onPressedChange={() => handleToggle(dateStr, "ot")}
+                                    className={cn(
+                                      "h-8 text-[10px] font-bold transition-all",
+                                      record.ot ? "border-amber-500 bg-amber-500 text-white hover:bg-amber-600 hover:text-white aria-pressed:bg-amber-500 aria-pressed:text-white" : "text-muted-foreground"
+                                    )}
+                                  >
+                                    OT
+                                  </Toggle>
+                                ) : (
+                                  <div /> /* Empty space for grid alignment if no OT */
+                                )}
+                                <Toggle
+                                  size="sm"
+                                  variant="outline"
+                                  pressed={record.holiday}
+                                  onPressedChange={() => handleToggle(dateStr, "holiday")}
+                                  className={cn(
+                                    "h-8 text-[10px] font-bold transition-all",
+                                    record.holiday ? "border-purple-500 bg-purple-500 text-white hover:bg-purple-600 hover:text-white aria-pressed:bg-purple-500 aria-pressed:text-white" : "text-muted-foreground"
+                                  )}
+                                >
+                                  HOL
+                                </Toggle>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        )
+                      })}
+                    </div>
                   </div>
                 </ScrollArea>
 
