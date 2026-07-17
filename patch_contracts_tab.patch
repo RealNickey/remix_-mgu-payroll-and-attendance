@@ -1,0 +1,20 @@
+--- src/components/ContractsTab.tsx
++++ src/components/ContractsTab.tsx
+@@ -148,7 +148,7 @@
+               </div>
+
+               <div className="space-y-1.5">
+-                <Label htmlFor="orderNo" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Government Order Number</Label>
++                <Label htmlFor="orderNo" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">University Order Number</Label>
+                 <Input
+                   id="orderNo"
+                   placeholder="e.g. Ad.B3/928/2026/MGU"
+@@ -235,7 +235,7 @@
+                         <TableCell className="p-3 border-r border-slate-100">
+                           <div className="space-y-0.5 text-xs text-slate-700">
+                             <div className="flex items-center gap-1">
+-                              <span className="text-[10px] font-bold text-slate-400 uppercase">G.O. No:</span>
++                              <span className="text-[10px] font-bold text-slate-400 uppercase">U.O. No:</span>
+                               <span className="font-mono font-semibold text-slate-800 truncate max-w-[150px]" title={contract.orderNo}>{contract.orderNo}</span>
+                             </div>
+                             <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium">

@@ -72,7 +72,7 @@ export function calculatePayroll(
 
     if (totalDays > 0) {
       const basePay = totalDays * (settings.baseWages[emp.category] || 0);
-      const otPay = otDays * settings.otRate;
+      const otPay = otDays * (settings.otRates[emp.category] || 0);
       
       payrolls.push({
         employee: emp,
@@ -80,7 +80,7 @@ export function calculatePayroll(
         otDays,
         basePay,
         otPay,
-        totalPay: basePay + otPay,
+        totalPay: Math.min(basePay + otPay, settings.monthlyCeiling?.[emp.category] ?? Infinity),
         workedHolidays,
         activeContracts,
       });

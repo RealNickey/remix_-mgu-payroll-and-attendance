@@ -20,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { 
+  Edit,
   UserPlus, 
   Users, 
   Trash2, 
@@ -29,21 +30,54 @@ import {
   HeartHandshake,
   AlertCircle
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 export default function EmployeesTab() {
-  const { employees, addEmployee, deleteEmployee, contracts } = useStore();
+  const { employees, addEmployee, updateEmployee, deleteEmployee, contracts } = useStore();
   const [name, setName] = useState('');
   const [category, setCategory] = useState<EmployeeCategory>('Gardeners');
   const [bankAccount, setBankAccount] = useState('');
+  const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingEmployee, setEditingEmployee] = useState<any>(null);
+  const [editName, setEditName] = useState('');
+  const [editCategory, setEditCategory] = useState<EmployeeCategory>('Gardeners');
+  const [editBankAccount, setEditBankAccount] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const handleAdd = (e: FormEvent) => {
     e.preventDefault();
-    if (!name || !bankAccount) return;
+    if (!name || !bankAccount || !address || !phone) return;
+    if (!/^\d{10}$/.test(phone)) {
+      alert('Phone number must be exactly 10 digits.');
+      return;
+    }
     
-    addEmployee({ name, category, bankAccount });
+    addEmployee({ name, category, bankAccount, address, phone });
     setName('');
     setBankAccount('');
+    setAddress('');
+    setPhone('');
+  };
+
+  const handleEditSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!editName || !editBankAccount || !editAddress || !editPhone) return;
+    if (!/^\d{10}$/.test(editPhone)) {
+      alert('Phone number must be exactly 10 digits.');
+      return;
+    }
+    updateEmployee(editingEmployee.id, { name: editName, category: editCategory, bankAccount: editBankAccount, address: editAddress, phone: editPhone });
+    setIsEditDialogOpen(false);
   };
 
   // Filtered employees list
@@ -134,6 +168,16 @@ export default function EmployeesTab() {
                   <SelectItem value="Helpers" className="text-xs rounded-lg">Helpers</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="address" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Address</Label>
+              <Input id="address" placeholder="e.g. 123 Main St" value={address} onChange={e => setAddress(e.target.value)} required className="rounded-xl h-9.5 text-xs border-slate-200 focus:ring-emerald-500/10 focus:border-emerald-500" />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="phone" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phone (10 Digits)</Label>
+              <Input id="phone" placeholder="e.g. 9876543210" value={phone} onChange={e => setPhone(e.target.value)} required pattern="\d{10}" title="Phone number must be exactly 10 digits" className="rounded-xl h-9.5 text-xs border-slate-200 focus:ring-emerald-500/10 focus:border-emerald-500" />
             </div>
 
             <div className="space-y-1.5">
@@ -228,12 +272,71 @@ export default function EmployeesTab() {
                           </Badge>
                         </TableCell>
                         <TableCell className="p-3 border-r border-slate-100">
-                          <div className="flex items-center gap-1.5 text-slate-700">
-                            <CreditCard className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="font-mono text-xs font-semibold">{emp.bankAccount}</span>
+                          <div className="flex flex-col text-slate-700 gap-0.5">
+                            <span className="font-mono text-xs font-semibold flex items-center gap-1.5"><CreditCard className="w-3.5 h-3.5 text-slate-400" /> {emp.bankAccount}</span>
+                            <span className="text-xs text-slate-500">{emp.address}</span>
+                            <span className="text-xs text-slate-500">{emp.phone}</span>
                           </div>
                         </TableCell>
                         <TableCell className="p-3 text-right">
+                          <div className="flex justify-end gap-2">
+                          <Dialog open={isEditDialogOpen && editingEmployee?.id === emp.id} onOpenChange={(open) => {
+                            setIsEditDialogOpen(open);
+                            if (open) {
+                              setEditingEmployee(emp);
+                              setEditName(emp.name);
+                              setEditCategory(emp.category);
+                              setEditBankAccount(emp.bankAccount);
+                              setEditAddress(emp.address || '');
+                              setEditPhone(emp.phone || '');
+                            } else {
+                              setEditingEmployee(null);
+                            }
+                          }}>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg text-[11px] font-bold cursor-pointer transition-all h-8">
+                                <Edit className="w-3.5 h-3.5 mr-1" /> Edit
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Edit Employee</DialogTitle>
+                              </DialogHeader>
+                              <form onSubmit={handleEditSubmit} className="space-y-4">
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="edit-name" className="text-xs font-bold text-slate-700">Name</Label>
+                                  <Input id="edit-name" value={editName} onChange={e => setEditName(e.target.value)} required className="rounded-xl h-9.5 text-xs" />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="edit-category" className="text-xs font-bold text-slate-700">Category</Label>
+                                  <Select value={editCategory} onValueChange={(v: EmployeeCategory) => setEditCategory(v)}>
+                                    <SelectTrigger id="edit-category" className="rounded-xl h-9.5 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Gardeners" className="text-xs">Gardeners</SelectItem>
+                                      <SelectItem value="Drivers" className="text-xs">Drivers</SelectItem>
+                                      <SelectItem value="Cooks" className="text-xs">Cooks</SelectItem>
+                                      <SelectItem value="Helpers" className="text-xs">Helpers</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="edit-bank" className="text-xs font-bold text-slate-700">Bank Account</Label>
+                                  <Input id="edit-bank" value={editBankAccount} onChange={e => setEditBankAccount(e.target.value)} required className="rounded-xl h-9.5 text-xs" />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="edit-address" className="text-xs font-bold text-slate-700">Address</Label>
+                                  <Input id="edit-address" value={editAddress} onChange={e => setEditAddress(e.target.value)} required className="rounded-xl h-9.5 text-xs" />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="edit-phone" className="text-xs font-bold text-slate-700">Phone (10 Digits)</Label>
+                                  <Input id="edit-phone" value={editPhone} onChange={e => setEditPhone(e.target.value)} required pattern="\d{10}" title="Phone number must be exactly 10 digits" className="rounded-xl h-9.5 text-xs" />
+                                </div>
+                                <Button type="submit" className="w-full bg-slate-900 text-white hover:bg-slate-800 rounded-xl h-9.5 text-xs font-bold">Save Changes</Button>
+                              </form>
+                            </DialogContent>
+                          </Dialog>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button 
@@ -262,6 +365,7 @@ export default function EmployeesTab() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

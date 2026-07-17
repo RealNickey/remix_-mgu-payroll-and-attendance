@@ -9,8 +9,6 @@ export interface Employee {
   name: string;
   category: EmployeeCategory;
   bankAccount: string;
-  address: string;
-  phone: string;
 }
 
 export interface Contract {
@@ -35,8 +33,7 @@ export type AttendanceRecord = Record<string, Record<string, DailyAttendance>>;
 
 export interface Settings {
   baseWages: Record<EmployeeCategory, number>;
-  otRates: Record<EmployeeCategory, number>;
-  monthlyCeiling: Record<EmployeeCategory, number>;
+  otRate: number;
 }
 
 interface AppState {
@@ -45,7 +42,7 @@ interface AppState {
   attendance: AttendanceRecord;
   settings: Settings;
   activeTab: string;
-  
+
   setActiveTab: (tab: string) => void;
   addEmployee: (emp: Omit<Employee, 'id'>) => void;
   updateEmployee: (id: string, emp: Partial<Omit<Employee, 'id'>>) => void;
@@ -56,7 +53,7 @@ interface AppState {
   deleteContract: (id: string) => void;
 
   setAttendance: (employeeId: string, date: string, data: DailyAttendance) => void;
-  
+
   updateSettings: (settings: Partial<Settings>) => void;
 }
 
@@ -73,18 +70,7 @@ export const useStore = create<AppState>()(
           Cooks: 550,
           Helpers: 450,
         },
-        otRates: {
-          Gardeners: 0,
-          Drivers: 100,
-          Cooks: 100,
-          Helpers: 100,
-        },
-        monthlyCeiling: {
-          Gardeners: 15000,
-          Drivers: 20000,
-          Cooks: 18000,
-          Helpers: 15000,
-        },
+        otRate: 100,
       },
       activeTab: 'attendance',
       setActiveTab: (tab) => set({ activeTab: tab }),
@@ -92,7 +78,7 @@ export const useStore = create<AppState>()(
       addEmployee: (emp) => set((state) => ({
         employees: [...state.employees, { ...emp, id: crypto.randomUUID() }]
       })),
-      
+
       updateEmployee: (id, emp) => set((state) => ({
         employees: state.employees.map(e => e.id === id ? { ...e, ...emp } : e)
       })),
@@ -105,7 +91,7 @@ export const useStore = create<AppState>()(
         // Contract is 90 days. Start date + 89 days.
         const start = parseISO(contract.startDate);
         const endDate = addDays(start, 89).toISOString().split('T')[0];
-        
+
         return {
           contracts: [...state.contracts, { ...contract, id: crypto.randomUUID(), endDate }]
         };

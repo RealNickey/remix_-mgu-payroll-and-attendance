@@ -17,12 +17,13 @@ import {
 export default function SettingsTab() {
   const { settings, updateSettings } = useStore();
   const [wages, setWages] = useState(settings.baseWages);
-  const [otRate, setOtRate] = useState(settings.otRate);
+  const [otRates, setOtRates] = useState(settings.otRates || { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 });
+  const [monthlyCeiling, setMonthlyCeiling] = useState(settings.monthlyCeiling || { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 });
   
   const categories: EmployeeCategory[] = ['Gardeners', 'Drivers', 'Cooks', 'Helpers'];
 
   const handleSave = () => {
-    updateSettings({ baseWages: wages, otRate });
+    updateSettings({ baseWages: wages, otRates, monthlyCeiling });
     toast.success('Settings saved!', { description: 'Disbursement indices updated successfully.' });
   };
 
@@ -80,30 +81,42 @@ export default function SettingsTab() {
           </CardContent>
         </Card>
 
-        {/* Panel 2: Overtime Rules */}
+        {/* Panel 2: Overtime & Limits */}
         <div className="space-y-6">
           <Card className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
             <CardHeader className="flex flex-row items-center gap-2.5 pb-3 border-b border-slate-100 p-6">
               <Clock className="w-4.5 h-4.5 text-emerald-600" />
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-700">Overtime Parameters (₹)</CardTitle>
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-700">Overtime Rates & Monthly Ceilings (₹)</CardTitle>
             </CardHeader>
 
             <CardContent className="space-y-4 p-6">
-              <div className="grid grid-cols-3 items-center gap-4">
-                <Label htmlFor="otRate" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">
-                  Flat OT Rate
-                </Label>
-                <div className="col-span-2 relative">
-                  <span className="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">₹</span>
-                  <Input 
-                    id="otRate"
-                    type="number" 
-                    className="pl-7 rounded-xl h-9.5 shadow-none border-slate-200 font-mono text-xs font-semibold text-slate-800 focus:ring-emerald-500/10 focus:border-emerald-500"
-                    value={otRate} 
-                    onChange={e => setOtRate(Number(e.target.value))}
-                  />
+              {categories.map(cat => (
+                <div key={cat} className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">
+                    {cat}
+                  </Label>
+                  <div className="col-span-1 relative" title="Overtime Rate">
+                    <span className="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">₹</span>
+                    <Input
+                      type="number"
+                      placeholder="OT"
+                      className="pl-7 rounded-xl h-9.5 shadow-none border-slate-200 font-mono text-xs font-semibold text-slate-800 focus:ring-emerald-500/10 focus:border-emerald-500"
+                      value={otRates[cat]}
+                      onChange={e => setOtRates({ ...otRates, [cat]: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="col-span-2 relative" title="Monthly Ceiling">
+                    <span className="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">₹</span>
+                    <Input
+                      type="number"
+                      placeholder="Ceiling"
+                      className="pl-7 rounded-xl h-9.5 shadow-none border-slate-200 font-mono text-xs font-semibold text-slate-800 focus:ring-emerald-500/10 focus:border-emerald-500"
+                      value={monthlyCeiling[cat]}
+                      onChange={e => setMonthlyCeiling({ ...monthlyCeiling, [cat]: Number(e.target.value) })}
+                    />
+                  </div>
                 </div>
-              </div>
+              ))}
 
               <div className="p-3.5 bg-slate-50 border border-slate-200/40 rounded-xl flex items-start gap-2.5 text-slate-500">
                 <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />

@@ -238,7 +238,7 @@ describe('Tier 1: Feature Coverage', () => {
     test('T1.16: Base wage for 1 full worked day', () => {
       const employees = [{ id: 'emp-1', name: 'Aswin', category: 'Drivers' as const, bankAccount: '123' }];
       const contracts = [{ id: 'c-1', employeeId: 'emp-1', startDate: '2025-12-26', endDate: '2026-03-25', orderNo: '1', orderDate: '2025-12-25' }];
-      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 };
+      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } };
       
       // Attendance on 2026-01-01 (which is within cycle 2026-01: Dec 26 - Jan 25)
       const attendance = {
@@ -257,7 +257,7 @@ describe('Tier 1: Feature Coverage', () => {
     test('T1.17: Base wage for two half days', () => {
       const employees = [{ id: 'emp-1', name: 'Aswin', category: 'Helpers' as const, bankAccount: '123' }];
       const contracts = [{ id: 'c-1', employeeId: 'emp-1', startDate: '2025-12-26', endDate: '2026-03-25', orderNo: '1', orderDate: '2025-12-25' }];
-      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 };
+      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } };
       
       // Attendance: fn only on day 1, an only on day 2
       const attendance = {
@@ -276,7 +276,7 @@ describe('Tier 1: Feature Coverage', () => {
     test('T1.18: Overtime pay calculation', () => {
       const employees = [{ id: 'emp-1', name: 'Aswin', category: 'Cooks' as const, bankAccount: '123' }];
       const contracts = [{ id: 'c-1', employeeId: 'emp-1', startDate: '2025-12-26', endDate: '2026-03-25', orderNo: '1', orderDate: '2025-12-25' }];
-      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 };
+      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } };
       
       const attendance = {
         'emp-1': {
@@ -293,7 +293,7 @@ describe('Tier 1: Feature Coverage', () => {
     test('T1.19: Worked holiday details extraction', () => {
       const employees = [{ id: 'emp-1', name: 'Aswin', category: 'Helpers' as const, bankAccount: '123' }];
       const contracts = [{ id: 'c-1', employeeId: 'emp-1', startDate: '2025-12-26', endDate: '2026-03-25', orderNo: '1', orderDate: '2025-12-25' }];
-      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 };
+      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } };
       
       const attendance = {
         'emp-1': {
@@ -309,7 +309,7 @@ describe('Tier 1: Feature Coverage', () => {
       const employees = [{ id: 'emp-1', name: 'Aswin', category: 'Drivers' as const, bankAccount: '123' }];
       // Contract ended on 2025-12-20 (before cycle 2026-01 starts on 2025-12-26)
       const contracts = [{ id: 'c-1', employeeId: 'emp-1', startDate: '2025-09-22', endDate: '2025-12-20', orderNo: '1', orderDate: '2025-09-20' }];
-      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 };
+      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } };
       
       const attendance = {
         'emp-1': {
@@ -330,7 +330,7 @@ describe('Tier 1: Feature Coverage', () => {
       expect(settings.baseWages.Drivers).toBe(600);
       expect(settings.baseWages.Cooks).toBe(550);
       expect(settings.baseWages.Helpers).toBe(450);
-      expect(settings.otRate).toBe(100);
+      expect(settings.otRates.Drivers).toBe(100);
     });
 
     test('T1.22: Update all category base rates', () => {
@@ -353,10 +353,10 @@ describe('Tier 1: Feature Coverage', () => {
 
     test('T1.23: Update overtime rate', () => {
       const { updateSettings } = useStore.getState();
-      updateSettings({ otRate: 150 });
+      updateSettings({ otRates: { Gardeners: 0, Drivers: 150, Cooks: 150, Helpers: 150 } });
 
       const { settings } = useStore.getState();
-      expect(settings.otRate).toBe(150);
+      expect(settings.otRates.Drivers).toBe(150);
       expect(settings.baseWages.Drivers).toBe(600); // untouched
     });
 
@@ -386,7 +386,7 @@ describe('Tier 1: Feature Coverage', () => {
 
     test('T1.25: Apply updated OT rate in calculation', () => {
       const { updateSettings } = useStore.getState();
-      updateSettings({ otRate: 125 });
+      updateSettings({ otRates: { Gardeners: 0, Drivers: 125, Cooks: 125, Helpers: 125 } });
 
       const employees = [{ id: 'emp-1', name: 'Aswin', category: 'Drivers' as const, bankAccount: '123' }];
       const contracts = [{ id: 'c-1', employeeId: 'emp-1', startDate: '2025-12-26', endDate: '2026-03-25', orderNo: '1', orderDate: '2025-12-25' }];
@@ -417,7 +417,7 @@ describe('Tier 1: Feature Coverage', () => {
       const employee = { id: 'emp-1', name: 'Aswin', category: 'Drivers' as const, bankAccount: '123' };
       const contract = { id: 'c-1', employeeId: 'emp-1', startDate: '2025-12-26', endDate: '2026-03-25', orderNo: '1', orderDate: '2025-12-25' };
 
-      generateIndividualReceipt(employee, contract, 2026, 1, {}, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 });
+      generateIndividualReceipt(employee, contract, 2026, 1, {}, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } });
       // In generateIndividualReceipt, columns are created chronologically from the billing cycle dates.
       // Column index 1 corresponds to Dec 26 (first day of billing cycle), and 31 corresponds to Jan 25 (last day).
       // The autoTable head styles/mock call records column structure. Let's verify autoTable was called.
@@ -439,7 +439,7 @@ describe('Tier 1: Feature Coverage', () => {
         attendanceRecord[dateStr] = { fn: true, an: true, ot: false, isHoliday: false };
       }
 
-      generateIndividualReceipt(employee, contract, 2026, 1, attendanceRecord, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 });
+      generateIndividualReceipt(employee, contract, 2026, 1, attendanceRecord, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } });
       // We look for a call containing 'Fifteen'
       const certCall = mockTextCalls.find(c => c.text && c.text.includes('Fifteen'));
       expect(certCall).toBeDefined();
@@ -458,7 +458,7 @@ describe('Tier 1: Feature Coverage', () => {
       }
       attendanceRecord['2026-01-16'] = { fn: true, an: false, ot: false, isHoliday: false };
 
-      generateIndividualReceipt(employee, contract, 2026, 1, attendanceRecord, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 });
+      generateIndividualReceipt(employee, contract, 2026, 1, attendanceRecord, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } });
       const certCall = mockTextCalls.find(c => c.text && c.text.includes('Fifteen and a Half'));
       expect(certCall).toBeDefined();
       expect(certCall.text).toContain('Fifteen and a Half');
@@ -475,7 +475,7 @@ describe('Tier 1: Feature Coverage', () => {
         '2026-01-01': { fn: false, an: true, ot: false, isHoliday: false }
       };
 
-      generateIndividualReceipt(employee, contract, 2026, 1, attendanceRecord, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 });
+      generateIndividualReceipt(employee, contract, 2026, 1, attendanceRecord, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } });
       
       const options = mockAutoTableCalls[mockAutoTableCalls.length - 1];
       const fnRow = options.body[0];

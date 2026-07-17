@@ -20,12 +20,12 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { format, parseISO } from 'date-fns';
-import { 
-  FileText, 
-  FilePlus, 
-  Trash2, 
-  Search, 
-  Calendar, 
+import {
+  FileText,
+  FilePlus,
+  Trash2,
+  Search,
+  Calendar,
   FileCheck,
   Clock,
   AlertTriangle,
@@ -43,7 +43,7 @@ export default function ContractsTab() {
   const handleAdd = (e: FormEvent) => {
     e.preventDefault();
     if (!employeeId || !startDate || !orderNo || !orderDate) return;
-    
+
     addContract({ employeeId, startDate, orderNo, orderDate });
     setStartDate('');
     setOrderNo('');
@@ -63,7 +63,7 @@ export default function ContractsTab() {
     return contracts.filter(contract => {
       const emp = employees.find(e => e.id === contract.employeeId);
       if (!emp) return false;
-      const matchSearch = emp.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      const matchSearch = emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           contract.orderNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           emp.category.toLowerCase().includes(searchQuery.toLowerCase());
       return matchSearch;
@@ -162,13 +162,13 @@ export default function ContractsTab() {
                 <Label htmlFor="startDate" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Start Date</Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                  <Input 
-                    type="date" 
-                    id="startDate" 
-                    value={startDate} 
-                    onChange={e => setStartDate(e.target.value)} 
-                    required 
-                    className="rounded-xl h-9.5 pl-9 text-xs border-slate-200 focus:ring-emerald-500/10 focus:border-emerald-500" 
+                  <Input
+                    type="date"
+                    id="startDate"
+                    value={startDate}
+                    onChange={e => setStartDate(e.target.value)}
+                    required
+                    className="rounded-xl h-9.5 pl-9 text-xs border-slate-200 focus:ring-emerald-500/10 focus:border-emerald-500"
                   />
                 </div>
                 <span className="text-[10px] text-slate-400 block ml-1 leading-normal">
@@ -177,14 +177,14 @@ export default function ContractsTab() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="orderNo" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">University Order Number</Label>
-                <Input 
-                  id="orderNo" 
-                  placeholder="e.g. Ad.B3/928/2026/MGU" 
-                  value={orderNo} 
-                  onChange={e => setOrderNo(e.target.value)} 
-                  required 
-                  className="rounded-xl h-9.5 text-xs border-slate-200 focus:ring-emerald-500/10 focus:border-emerald-500" 
+                <Label htmlFor="orderNo" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Government Order Number</Label>
+                <Input
+                  id="orderNo"
+                  placeholder="e.g. Ad.B3/928/2026/MGU"
+                  value={orderNo}
+                  onChange={e => setOrderNo(e.target.value)}
+                  required
+                  className="rounded-xl h-9.5 text-xs border-slate-200 focus:ring-emerald-500/10 focus:border-emerald-500"
                 />
               </div>
 
@@ -192,19 +192,19 @@ export default function ContractsTab() {
                 <Label htmlFor="orderDate" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Order Issue Date</Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                  <Input 
-                    type="date" 
-                    id="orderDate" 
-                    value={orderDate} 
-                    onChange={e => setOrderDate(e.target.value)} 
-                    required 
-                    className="rounded-xl h-9.5 pl-9 text-xs border-slate-200 focus:ring-emerald-500/10 focus:border-emerald-500" 
+                  <Input
+                    type="date"
+                    id="orderDate"
+                    value={orderDate}
+                    onChange={e => setOrderDate(e.target.value)}
+                    required
+                    className="rounded-xl h-9.5 pl-9 text-xs border-slate-200 focus:ring-emerald-500/10 focus:border-emerald-500"
                   />
                 </div>
               </div>
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-9.5 text-xs font-bold shadow-xs cursor-pointer active:scale-98 transition-all"
               >
                 Issue Term Contract
@@ -218,7 +218,7 @@ export default function ContractsTab() {
           {/* Header Search */}
           <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50 shrink-0">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Contracts Registry</h3>
-            
+
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400 z-10" />
               <Input
@@ -258,7 +258,7 @@ export default function ContractsTab() {
                     const emp = employees.find(e => e.id === contract.employeeId);
                     const status = getContractStatus(contract.startDate, contract.endDate);
                     const initials = emp ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '';
-                    
+
                     return (
                       <TableRow key={contract.id} className="border-t border-slate-100 bg-white hover:bg-slate-50/50">
                         <TableCell className="p-3 border-r border-slate-100">
@@ -300,7 +300,7 @@ export default function ContractsTab() {
                         <TableCell className="p-3 border-r border-slate-100">
                           <div className="space-y-0.5 text-xs text-slate-700">
                             <div className="flex items-center gap-1">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase">U.O. No:</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase">G.O. No:</span>
                               <span className="font-mono font-semibold text-slate-800 truncate max-w-[150px]" title={contract.orderNo}>{contract.orderNo}</span>
                             </div>
                             <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium">
@@ -312,9 +312,9 @@ export default function ContractsTab() {
                         <TableCell className="p-3 text-right">
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg text-[11px] font-bold cursor-pointer transition-all h-8"
                               >
                                 <Trash2 className="w-3.5 h-3.5 mr-1" /> Void
@@ -329,7 +329,7 @@ export default function ContractsTab() {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction 
+                                <AlertDialogAction
                                   onClick={() => deleteContract(contract.id)}
                                   className="bg-rose-600 hover:bg-rose-700 text-white border-none"
                                 >

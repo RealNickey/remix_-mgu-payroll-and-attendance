@@ -233,7 +233,7 @@ describe('Tier 4: Real-World Scenarios', () => {
         Cooks: 550,
         Helpers: 500
       },
-      otRate: 120
+      otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 }
     });
 
     const payrollsPost = calculatePayroll(

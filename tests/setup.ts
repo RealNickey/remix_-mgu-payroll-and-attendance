@@ -85,7 +85,7 @@ export function resetTestEnvironment() {
         Cooks: 550,
         Helpers: 450,
       },
-      otRate: 100,
+      otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 },
     },
     activeTab: 'attendance',
   }, false);

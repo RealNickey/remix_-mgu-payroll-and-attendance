@@ -63,7 +63,7 @@ describe('Tier 3: Cross-Feature Combinations', () => {
 
     const initialSettings = {
       baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 },
-      otRate: 100
+      otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 }
     };
 
     const payrolls1 = calculatePayroll(2026, 1, employees, contracts, attendance, initialSettings);
@@ -72,7 +72,7 @@ describe('Tier 3: Cross-Feature Combinations', () => {
     // Adjust settings
     const updatedSettings = {
       baseWages: { Gardeners: 500, Drivers: 600, Cooks: 700, Helpers: 450 },
-      otRate: 100
+      otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 }
     };
 
     const payrolls2 = calculatePayroll(2026, 1, employees, contracts, attendance, updatedSettings);
@@ -162,7 +162,7 @@ describe('Tier 3: Cross-Feature Combinations', () => {
       { id: 'c-2', employeeId: 'emp-1', startDate: '2026-01-06', endDate: '2026-04-05', orderNo: 'ORD-2-LATEST', orderDate: '2026-01-05' }
     ];
 
-    generateIndividualReceipt(employee, contracts[1], 2026, 1, {}, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 });
+    generateIndividualReceipt(employee, contracts[1], 2026, 1, {}, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } });
 
     // Verify PDF displays orderNo of latest contract (c-2)
     const orderCall = mockTextCalls.find(c => c.text && c.text.includes('ORD-2-LATEST'));
@@ -175,7 +175,7 @@ describe('Tier 3: Cross-Feature Combinations', () => {
       { id: 'c-1', employeeId: 'emp-1', startDate: '2025-12-01', endDate: '2026-01-05', orderNo: '1', orderDate: '2025-11-30' },
       { id: 'c-2', employeeId: 'emp-1', startDate: '2026-01-15', endDate: '2026-04-14', orderNo: '2', orderDate: '2026-01-14' }
     ];
-    const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 };
+    const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } };
     
     // Holiday worked on Jan 10 (falls in gap Jan 6 to Jan 14)
     const attendance = {

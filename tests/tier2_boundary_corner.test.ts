@@ -160,7 +160,7 @@ describe('Tier 2: Boundary & Corner Cases', () => {
     test('T2.12: Ignore OT flag for Gardeners in pay calculations', () => {
       const employees = [{ id: 'emp-1', name: 'Frank', category: 'Gardeners' as const, bankAccount: '123' }];
       const contracts = [{ id: 'c-1', employeeId: 'emp-1', startDate: '2025-12-26', endDate: '2026-03-25', orderNo: '1', orderDate: '2025-12-25' }];
-      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 };
+      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } };
       
       const attendance = {
         'emp-1': {
@@ -177,7 +177,7 @@ describe('Tier 2: Boundary & Corner Cases', () => {
     test('T2.13: Holiday flag marked without worked hours', () => {
       const employees = [{ id: 'emp-1', name: 'Aswin', category: 'Helpers' as const, bankAccount: '123' }];
       const contracts = [{ id: 'c-1', employeeId: 'emp-1', startDate: '2025-12-26', endDate: '2026-03-25', orderNo: '1', orderDate: '2025-12-25' }];
-      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 };
+      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } };
       
       const attendance = {
         'emp-1': {
@@ -192,7 +192,7 @@ describe('Tier 2: Boundary & Corner Cases', () => {
     test('T2.14: Invalid date format string', () => {
       const employees = [{ id: 'emp-1', name: 'Aswin', category: 'Helpers' as const, bankAccount: '123' }];
       const contracts = [{ id: 'c-1', employeeId: 'emp-1', startDate: '2025-12-26', endDate: '2026-03-25', orderNo: '1', orderDate: '2025-12-25' }];
-      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 };
+      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } };
       
       const attendance = {
         'emp-1': {
@@ -222,7 +222,7 @@ describe('Tier 2: Boundary & Corner Cases', () => {
     test('T2.16: Gardener category: OT pay is zero', () => {
       const employees = [{ id: 'emp-1', name: 'Aswin', category: 'Gardeners' as const, bankAccount: '123' }];
       const contracts = [{ id: 'c-1', employeeId: 'emp-1', startDate: '2025-12-26', endDate: '2026-03-25', orderNo: '1', orderDate: '2025-12-25' }];
-      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 };
+      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } };
       
       const attendance = {
         'emp-1': {
@@ -241,7 +241,7 @@ describe('Tier 2: Boundary & Corner Cases', () => {
       const employees = [{ id: 'emp-1', name: 'Aswin', category: 'Drivers' as const, bankAccount: '123' }];
       // Contract starting Jan 10
       const contracts = [{ id: 'c-1', employeeId: 'emp-1', startDate: '2026-01-10', endDate: '2026-04-09', orderNo: '1', orderDate: '2026-01-09' }];
-      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 };
+      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } };
       
       // Attendance on Jan 5 (outside contract)
       const attendance = {
@@ -261,7 +261,7 @@ describe('Tier 2: Boundary & Corner Cases', () => {
         { id: 'c-1', employeeId: 'emp-1', startDate: '2025-10-01', endDate: '2026-01-05', orderNo: '1', orderDate: '2025-09-30' },
         { id: 'c-2', employeeId: 'emp-1', startDate: '2026-01-10', endDate: '2026-04-09', orderNo: '2', orderDate: '2026-01-09' }
       ];
-      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 };
+      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } };
       
       const attendance = {
         'emp-1': {
@@ -278,7 +278,7 @@ describe('Tier 2: Boundary & Corner Cases', () => {
     test('T2.19: Zero days worked in cycle', () => {
       const employees = [{ id: 'emp-1', name: 'Aswin', category: 'Drivers' as const, bankAccount: '123' }];
       const contracts = [{ id: 'c-1', employeeId: 'emp-1', startDate: '2025-12-26', endDate: '2026-03-25', orderNo: '1', orderDate: '2025-12-25' }];
-      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 };
+      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } };
       const attendance = {};
 
       const payrolls = calculatePayroll(2026, 1, employees, contracts, attendance, settings);
@@ -291,7 +291,7 @@ describe('Tier 2: Boundary & Corner Cases', () => {
         { id: 'c-1', employeeId: 'emp-1', startDate: '2026-01-01', endDate: '2026-03-31', orderNo: '1', orderDate: '2025-12-30' },
         { id: 'c-2', employeeId: 'emp-1', startDate: '2026-02-01', endDate: '2026-05-01', orderNo: '2', orderDate: '2026-01-30' }
       ];
-      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 };
+      const settings = { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } };
       
       const attendance = {
         'emp-1': {
@@ -324,7 +324,7 @@ describe('Tier 2: Boundary & Corner Cases', () => {
 
     test('T2.22: Flat OT rate at zero', () => {
       const { updateSettings } = useStore.getState();
-      updateSettings({ otRate: 0 });
+      updateSettings({ otRates: { Gardeners: 0, Drivers: 0, Cooks: 0, Helpers: 0 } });
 
       const employees = [{ id: 'emp-1', name: 'Aswin', category: 'Drivers' as const, bankAccount: '123' }];
       const contracts = [{ id: 'c-1', employeeId: 'emp-1', startDate: '2025-12-26', endDate: '2026-03-25', orderNo: '1', orderDate: '2025-12-25' }];
@@ -377,7 +377,7 @@ describe('Tier 2: Boundary & Corner Cases', () => {
       const state = useStore.getState();
       const payrolls = calculatePayroll(2026, 1, employees, contracts, attendance, state.settings);
       expect(payrolls[0].basePay).toBe(100000000);
-      expect(payrolls[0].totalPay).toBe(100000000);
+      expect(payrolls[0].totalPay).toBe(20000);
     });
 
     test('T2.25: Missing category in update object', () => {
@@ -417,7 +417,7 @@ describe('Tier 2: Boundary & Corner Cases', () => {
       const employee = { id: 'emp-1', name: 'Aswin', category: 'Drivers' as const, bankAccount: '123' };
       const contract = { id: 'c-1', employeeId: 'emp-1', startDate: '2025-12-26', endDate: '2026-03-25', orderNo: '1', orderDate: '2025-12-25' };
 
-      generateIndividualReceipt(employee, contract, 2026, 1, {}, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 });
+      generateIndividualReceipt(employee, contract, 2026, 1, {}, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } });
       const certCall = mockTextCalls.find(c => c.text && c.text.includes('Zero'));
       expect(certCall).toBeDefined();
     });
@@ -429,7 +429,7 @@ describe('Tier 2: Boundary & Corner Cases', () => {
       // March 2026 cycle. Previous month is Feb 2026 (28 days).
       // Days 29, 30, 31 do not exist in Feb, so dateStr should be empty and not render any 'X'.
       const attendanceRecord = {};
-      generateIndividualReceipt(employee, contract, 2026, 3, attendanceRecord, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 });
+      generateIndividualReceipt(employee, contract, 2026, 3, attendanceRecord, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } });
 
       const options = mockAutoTableCalls[mockAutoTableCalls.length - 1];
       const fnRow = options.body[0];
@@ -455,7 +455,7 @@ describe('Tier 2: Boundary & Corner Cases', () => {
         '2026-01-05': { fn: true, an: true, ot: false, isHoliday: true }
       };
 
-      generateIndividualReceipt(employee, contract, 2026, 1, attendanceRecord, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRate: 100 });
+      generateIndividualReceipt(employee, contract, 2026, 1, attendanceRecord, { baseWages: { Gardeners: 500, Drivers: 600, Cooks: 550, Helpers: 450 }, otRates: { Gardeners: 0, Drivers: 100, Cooks: 100, Helpers: 100 }, monthlyCeiling: { Gardeners: 15000, Drivers: 20000, Cooks: 18000, Helpers: 15000 } });
 
       // Locate the holidays call
       const holidaysCall = mockTextCalls.find(c => c.text && c.text.includes('duty on the following holidays:'));
