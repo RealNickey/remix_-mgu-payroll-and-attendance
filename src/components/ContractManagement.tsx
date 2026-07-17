@@ -56,7 +56,10 @@ import {
 } from "@remixicon/react"
 import { toast } from "sonner"
 import { DatePicker } from "@/components/ui/date-picker"
-import { computeEndDate } from "@/lib/payrollUtils"
+import { DatePickerWithRange } from "@/components/ui/date-range-picker"
+import { addDays } from "date-fns"
+import { type DateRange } from "react-day-picker"
+import { useMemo } from "react"
 
 interface ContractManagementProps {
   onNavigateToEmployees: () => void
@@ -71,8 +74,72 @@ export const ContractManagement = ({
   // Form states
   const [employeeId, setEmployeeId] = useState("")
   const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
   const [goNumber, setGoNumber] = useState("")
   const [goDate, setGoDate] = useState("")
+
+  const [isSelectingTo, setIsSelectingTo] = useState(false)
+
+  const parseLocalDate = (dateStr: string) => {
+    if (!dateStr) return undefined
+    const parts = dateStr.split("-").map(Number)
+    if (parts.length !== 3) return undefined
+    return new Date(parts[0], parts[1] - 1, parts[2])
+  }
+
+  const formatLocalDate = (date: Date): string => {
+    const yyyy = date.getFullYear()
+    const mm = String(date.getMonth() + 1).padStart(2, "0")
+    const dd = String(date.getDate()).padStart(2, "0")
+    return `${yyyy}-${mm}-${dd}`
+  }
+
+  const dateRange = useMemo<DateRange | undefined>(() => {
+    if (!startDate) return undefined
+    const from = parseLocalDate(startDate)
+    const to = endDate ? parseLocalDate(endDate) : undefined
+    return { from, to }
+  }, [startDate, endDate])
+
+  const handleRangeSelect = (_range: DateRange | undefined, selectedDay: Date) => {
+    if (!selectedDay) {
+      setStartDate("")
+      setEndDate("")
+      setIsSelectingTo(false)
+      return
+    }
+
+    if (!isSelectingTo) {
+      // User clicked a start date. We automatically select 90 days.
+      const fromStr = formatLocalDate(selectedDay)
+      // Automatically calculate 90 days (start date + 89 days)
+      const toDate = addDays(selectedDay, 89)
+      const toStr = formatLocalDate(toDate)
+
+      setStartDate(fromStr)
+      setEndDate(toStr)
+      setIsSelectingTo(true)
+      setStartDateError(false)
+    } else {
+      // User is selecting the end date
+      const start = startDate ? parseLocalDate(startDate) : undefined
+      if (start && selectedDay < start) {
+        // If clicked date is before 'from', treat it as a new 'from' date
+        const fromStr = formatLocalDate(selectedDay)
+        const toDate = addDays(selectedDay, 89)
+        const toStr = formatLocalDate(toDate)
+
+        setStartDate(fromStr)
+        setEndDate(toStr)
+        setIsSelectingTo(true)
+      } else {
+        // Confirm / change the end date
+        const toStr = formatLocalDate(selectedDay)
+        setEndDate(toStr)
+        setIsSelectingTo(false)
+      }
+    }
+  }
 
   // Search filter
   const [searchQuery, setSearchQuery] = useState("")
@@ -118,8 +185,8 @@ export const ContractManagement = ({
           const idAttr = activeElement.getAttribute("id")
           if (idAttr === "goDate") {
             if (!goDate) return
-          } else if (idAttr === "startDate") {
-            if (!startDate) return
+          } else if (idAttr === "contractPeriod") {
+            if (!startDate || !endDate) return
           }
         }
 
@@ -155,7 +222,7 @@ export const ContractManagement = ({
       setEmpError(false)
     }
 
-    if (!startDate) {
+    if (!startDate || !endDate) {
       setStartDateError(true)
       hasError = true
     } else {
@@ -182,11 +249,10 @@ export const ContractManagement = ({
     }
 
     const previousContracts = [...contracts]
-    const calculatedEndDate = computeEndDate(startDate)
     addContract(
       employeeId,
       startDate,
-      calculatedEndDate,
+      endDate,
       goNumber.trim(),
       goDate
     )
@@ -201,8 +267,10 @@ export const ContractManagement = ({
     // Reset Form
     setEmployeeId("")
     setStartDate("")
+    setEndDate("")
     setGoNumber("")
     setGoDate("")
+    setIsSelectingTo(false)
   }
 
   const handleVoid = (id: string, goNo: string) => {
@@ -388,27 +456,29 @@ export const ContractManagement = ({
                     </Field>
 
                     <Field data-invalid={startDateError ? "true" : undefined}>
-                      <FieldLabel htmlFor="startDate">Contract Start Date</FieldLabel>
-                      <DatePicker
-                        id="startDate"
-                        value={startDate}
-                        onChange={(val) => {
-                          setStartDate(val)
-                          setStartDateError(false)
-                        }}
+                      <FieldLabel htmlFor="contractPeriod">Contract Period</FieldLabel>
+                      <DatePickerWithRange
+                        id="contractPeriod"
+                        date={dateRange}
+                        setDate={() => {}}
+                        onSelect={handleRangeSelect}
                       />
                       {startDateError && (
                         <FieldError>
-                          Start date is required.
+                          Contract period is required.
                         </FieldError>
                       )}
-                      {startDate && (
+                      {startDate && endDate && (
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Calculated End Date:{" "}
+                          Selected Duration:{" "}
                           <span className="font-semibold text-foreground">
-                            {new Date(computeEndDate(startDate)).toLocaleDateString("en-GB")}
+                            {parseLocalDate(startDate)?.toLocaleDateString("en-GB")}
                           </span>{" "}
-                          (Total 90 days)
+                          to{" "}
+                          <span className="font-semibold text-foreground">
+                            {parseLocalDate(endDate)?.toLocaleDateString("en-GB")}
+                          </span>{" "}
+                          (Total {Math.round((parseLocalDate(endDate)!.getTime() - parseLocalDate(startDate)!.getTime()) / (1000 * 60 * 60 * 24)) + 1} days)
                         </p>
                       )}
                     </Field>

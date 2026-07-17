@@ -3,14 +3,16 @@ import autoTable from "jspdf-autotable"
 import type { PayrollRow } from "./db"
 import type { WageSettings, JobCategory } from "./types"
 import { formatIndianRupees, daysToWords, formatDateKey } from "./payrollUtils"
+import { NOTO_SANS_MALAYALAM_BASE64 } from "./malayalamFont"
 
 export function generateSummaryReport(
   payroll: PayrollRow[],
   monthName: string,
   year: number,
   cycleStartStr: string,
-  cycleEndStr: string
-) {
+  cycleEndStr: string,
+  asPreview?: boolean
+): { url: string; filename: string } | void {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -111,14 +113,19 @@ export function generateSummaryReport(
   })
 
   // Download trigger
-  doc.save(`Disbursement_Summary_${monthName}_${year}.pdf`)
+  const filename = `Disbursement_Summary_${monthName}_${year}.pdf`
+  if (asPreview) {
+    return { url: URL.createObjectURL(doc.output("blob")), filename }
+  }
+  doc.save(filename)
 }
 
 export function generateAttendanceReport(
   payroll: PayrollRow[],
   monthName: string,
-  year: number
-) {
+  year: number,
+  asPreview?: boolean
+): { url: string; filename: string } | void {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -205,7 +212,142 @@ export function generateAttendanceReport(
     margin: { left: margin, right: margin },
   })
 
-  doc.save(`Attendance_Report_${monthName}_${year}.pdf`)
+  const filename = `Attendance_Report_${monthName}_${year}.pdf`
+  if (asPreview) {
+    return { url: URL.createObjectURL(doc.output("blob")), filename }
+  }
+  doc.save(filename)
+}
+
+function rupeesToMalayalamWords(num: number): string {
+  const value = Math.round(num); // Round to nearest integer
+  if (value === 0) return "പൂജ്യം";
+  
+  const units = ["", "ഒന്ന്", "രണ്ട്", "മൂന്ന്", "നാല്", "അഞ്ച്", "ആറ്", "ഏഴ്", "എട്ട്", "ഒൻപത്"];
+  const teens = ["പത്ത്", "പതിനൊന്ന്", "പന്ത്രണ്ട്", "പതിമൂന്ന്", "പതിനാല്", "പതിനഞ്ച്", "പതിനാറ്", "പതിനേഴ്", "പതിനെട്ട്", "പത്തൊൻപത്"];
+  const tens = ["", "", "ഇരുപത്", "മുപ്പത്", "നാൽപത്", "അൻപത്", "അറുപത്", "എഴുപത്", "എൺപത്", "തൊണ്ണൂറ്"];
+  
+  function formatBelow100(n: number): string {
+    if (n < 10) return units[n];
+    if (n < 20) return teens[n - 10];
+    
+    const tenPart = Math.floor(n / 10);
+    const unitPart = n % 10;
+    
+    if (unitPart === 0) return tens[tenPart];
+    
+    const compoundingPrefixes = ["", "", "ഇരുപത്തി", "മുപ്പത്തി", "നാൽപത്തി", "അൻപത്തി", "അറുപത്തി", "എഴുപത്തി", "എൺപത്തി", "തൊണ്ണൂറ്റി"];
+    return compoundingPrefixes[tenPart] + units[unitPart];
+  }
+  
+  function formatBelow1000(n: number): string {
+    if (n < 100) return formatBelow100(n);
+    const hundredPart = Math.floor(n / 100);
+    const remainder = n % 100;
+    
+    let hundredWord = "";
+    if (hundredPart === 1) hundredWord = "നൂറ്";
+    else if (hundredPart === 2) hundredWord = "ഇരുന്നൂറ്";
+    else if (hundredPart === 3) hundredWord = "മുന്നൂറ്";
+    else if (hundredPart === 4) hundredWord = "നാനൂറ്";
+    else if (hundredPart === 5) hundredWord = "അഞ്ഞൂറ്";
+    else if (hundredPart === 6) hundredWord = "അറുനൂറ്";
+    else if (hundredPart === 7) hundredWord = "എഴുനൂറ്";
+    else if (hundredPart === 8) hundredWord = "എണ്ണൂറ്";
+    else if (hundredPart === 9) hundredWord = "തൊള്ളായിരം";
+    
+    if (remainder === 0) return hundredWord;
+    
+    let hundredPrefix = "";
+    if (hundredPart === 1) hundredPrefix = "നൂറ്റി";
+    else if (hundredPart === 2) hundredPrefix = "ഇരുന്നൂറ്റി";
+    else if (hundredPart === 3) hundredPrefix = "മുന്നൂറ്റി";
+    else if (hundredPart === 4) hundredPrefix = "നാനൂറ്റി";
+    else if (hundredPart === 5) hundredPrefix = "അഞ്ഞൂറ്റി";
+    else if (hundredPart === 6) hundredPrefix = "അറുനൂറ്റി";
+    else if (hundredPart === 7) hundredPrefix = "എഴുനൂറ്റി";
+    else if (hundredPart === 8) hundredPrefix = "എണ്ണൂറ്റി";
+    else if (hundredPart === 9) hundredPrefix = "തൊള്ളായിരത്തി";
+    
+    return hundredPrefix + " " + formatBelow100(remainder);
+  }
+
+  function formatBelow100000(n: number): string {
+    if (n < 1000) return formatBelow1000(n);
+    const thousandPart = Math.floor(n / 1000);
+    const remainder = n % 1000;
+    
+    let thousandWord = "";
+    if (thousandPart === 1) thousandWord = "ആയിരത്തി";
+    else {
+      if (thousandPart === 10) {
+        thousandWord = "പതിനായിരത്തി";
+      } else if (thousandPart === 20) {
+        thousandWord = "ഇരുപതിനായിരത്തി";
+      } else if (thousandPart === 30) {
+        thousandWord = "മുപ്പതിനായിരത്തി";
+      } else if (thousandPart === 40) {
+        thousandWord = "നാൽപതിനായിരത്തി";
+      } else if (thousandPart === 50) {
+        thousandWord = "അൻപതിനായിരത്തി";
+      } else if (thousandPart === 60) {
+        thousandWord = "അറുപതിനായിരത്തി";
+      } else if (thousandPart === 70) {
+        thousandWord = "എഴുപതിനായിരത്തി";
+      } else if (thousandPart === 80) {
+        thousandWord = "എൺപതിനായിരത്തി";
+      } else if (thousandPart === 90) {
+        thousandWord = "തൊണ്ണൂറായിരത്തി";
+      } else {
+        const prefixes: Record<number, string> = {
+          2: "രണ്ടായിരത്തി",
+          3: "മൂന്നായിരത്തി",
+          4: "നാലായിരത്തി",
+          5: "അയ്യായിരത്തി",
+          6: "ആറായിരത്തി",
+          7: "ഏഴായിരത്തി",
+          8: "എട്ടായിരത്തി",
+          9: "ഒൻപതിനായിരത്തി"
+        };
+        if (prefixes[thousandPart]) {
+          thousandWord = prefixes[thousandPart];
+        } else {
+          thousandWord = formatBelow100(thousandPart) + " ആയിരത്തി";
+        }
+      }
+    }
+    
+    if (remainder === 0) {
+      if (thousandPart === 1) return "ആയിരം";
+      if (thousandPart === 10) return "പതിനായിരം";
+      if (thousandPart === 20) return "ഇരുപതിനായിരം";
+      if (thousandPart === 30) return "മുപ്പതിനായിരം";
+      if (thousandPart === 40) return "നാൽപതിനായിരം";
+      if (thousandPart === 50) return "അൻപതിനായിരം";
+      if (thousandPart === 60) return "അറുപതിനായിരം";
+      if (thousandPart === 70) return "എഴുപതിനായിരം";
+      if (thousandPart === 80) return "എൺപതിനായിരം";
+      if (thousandPart === 90) return "തൊണ്ണൂറായിരം";
+      
+      const suffixes: Record<number, string> = {
+        2: "രണ്ടായിരം",
+        3: "മൂന്നായിരം",
+        4: "നാലായിരം",
+        5: "അയ്യായിരം",
+        6: "ആറായിരം",
+        7: "ഏഴായിരം",
+        8: "എട്ടായിരം",
+        9: "ഒൻപതിനായിരം"
+      };
+      if (suffixes[thousandPart]) return suffixes[thousandPart];
+      
+      return formatBelow100(thousandPart) + " ആയിരം";
+    }
+    
+    return thousandWord + " " + formatBelow1000(remainder);
+  }
+  
+  return formatBelow100000(value);
 }
 
 export function generateEmployeeReceipt(
@@ -213,8 +355,9 @@ export function generateEmployeeReceipt(
   attendanceData: Record<string, any>,
   billingCycleDates: Date[],
   monthName: string,
-  year: number
-) {
+  year: number,
+  asPreview?: boolean
+): { url: string; filename: string } | void {
   // Formal Landscape Certificate
   const doc = new jsPDF({
     orientation: "landscape",
@@ -381,9 +524,99 @@ export function generateEmployeeReceipt(
     doc.text(sig.title, sig.x, sigY, { align: "center" })
   })
 
+  // === 7. Second Page (Malayalam Receipts) ===
+  doc.addPage("a4", "portrait")
+
+  // Register Malayalam Font
+  doc.addFileToVFS("NotoSansMalayalam-Regular.ttf", NOTO_SANS_MALAYALAM_BASE64)
+  doc.addFont("NotoSansMalayalam-Regular.ttf", "NotoSansMalayalam", "normal")
+
+  const pWidth = doc.internal.pageSize.width   // 210mm
+  const pHeight = doc.internal.pageSize.height // 297mm
+  const pMargin = 20
+  const usableWidth = pWidth - pMargin * 2       // 170mm
+
+  // Draw cut line / divider in the middle
+  doc.setDrawColor(203, 213, 225) // Slate-300
+  doc.setLineWidth(0.4)
+  doc.setLineDashPattern([2, 2], 0)
+  doc.line(pMargin, pHeight / 2, pWidth - pMargin, pHeight / 2)
+  doc.setLineDashPattern([], 0) // reset dash pattern
+
+  // --- RECEIPT 1 (Top half) ---
+  const r1Start = 20
+
+  // Title: "രസീത്"
+  doc.setFont("NotoSansMalayalam", "normal")
+  doc.setFontSize(14)
+  doc.setTextColor(15, 23, 42)
+  const title1 = "രസീത്"
+  doc.text(title1, pWidth / 2, r1Start + 10, { align: "center" })
+
+  // Underline for title
+  const title1Width = doc.getTextWidth(title1)
+  doc.setDrawColor(15, 23, 42)
+  doc.setLineWidth(0.4)
+  doc.line(pWidth / 2 - title1Width / 2, r1Start + 12, pWidth / 2 + title1Width / 2, r1Start + 12)
+
+  // Body text 1
+  doc.setFontSize(11)
+  const bodyText1 = "മഹാത്മാഗാന്ധി സർവ്വകലാശാലയിൽ ദിവസ വേതന വ്യവസ്ഥയിൽ ജോലി ചെയ്യുന്ന എനിക്ക് പ്രതിഫല തുക മാസാവസാനം ഒരുമിച്ച് നൽകണമെന്ന് അപേക്ഷിക്കുന്നു."
+  const splitText1 = doc.splitTextToSize(bodyText1, usableWidth)
+  doc.text(splitText1, pMargin, r1Start + 24, { lineHeightFactor: 1.6 })
+
+  // Footer elements
+  const r1FooterY = r1Start + 56
+  doc.setFontSize(10.5)
+  // Left Column
+  doc.text("പി ഡി ഹിൽസ്", pMargin, r1FooterY)
+  doc.text("തീയതി :", pMargin, r1FooterY + 8)
+
+  // Right Column
+  const rightColX = pWidth - pMargin - 65
+  doc.text("ഒപ്പ്", rightColX, r1FooterY)
+  doc.text(`പേര് : ${row.name}`, rightColX, r1FooterY + 8)
+  doc.text("വിലാസം :", rightColX, r1FooterY + 16)
+
+  // --- RECEIPT 2 (Bottom half) ---
+  const r2Start = pHeight / 2 + 15
+
+  // Title: "രസീത്"
+  doc.setFontSize(14)
+  const title2 = "രസീത്"
+  doc.text(title2, pWidth / 2, r2Start + 10, { align: "center" })
+
+  // Underline
+  const title2Width = doc.getTextWidth(title2)
+  doc.line(pWidth / 2 - title2Width / 2, r2Start + 12, pWidth / 2 + title2Width / 2, r2Start + 12)
+
+  // Body text 2 with dynamic values
+  doc.setFontSize(11)
+  const amountInWords = rupeesToMalayalamWords(row.totalPay)
+  const formattedPay = row.totalPay.toLocaleString("en-IN")
+  const bodyText2 = `മഹാത്മാഗാന്ധി സർവ്വകലാശാലയിൽ ${year} ലെ ${row.regularDays.toFixed(1)} ദിവസത്തേക്കുള്ള കൂലിയായി Rs. ${formattedPay}/- (രൂ. ${amountInWords} മാത്രം) മഹാത്മാഗാന്ധി സർവ്വകലാശാല ഫിനാൻസ് ഓഫീസറുടെ പക്കൽ നിന്നും കൈപ്പറ്റിയിരിക്കുന്നു.`
+  const splitText2 = doc.splitTextToSize(bodyText2, usableWidth)
+  doc.text(splitText2, pMargin, r2Start + 24, { lineHeightFactor: 1.6 })
+
+  // Footer elements
+  const r2FooterY = r2Start + 56
+  doc.setFontSize(10.5)
+  // Left Column
+  doc.text("പി ഡി ഹിൽസ്", pMargin, r2FooterY)
+  doc.text("തീയതി :", pMargin, r2FooterY + 8)
+
+  // Right Column
+  doc.text("ഒപ്പ്", rightColX, r2FooterY)
+  doc.text(`പേര് : ${row.name}`, rightColX, r2FooterY + 8)
+  doc.text("വിലാസം :", rightColX, r2FooterY + 16)
+
   // Save PDF
   const sanitizedEmployeeName = row.name.replace(/[^a-zA-Z0-9]/g, "_")
-  doc.save(`Receipt_${sanitizedEmployeeName}_${monthName}_${year}.pdf`)
+  const filename = `Receipt_${sanitizedEmployeeName}_${monthName}_${year}.pdf`
+  if (asPreview) {
+    return { url: URL.createObjectURL(doc.output("blob")), filename }
+  }
+  doc.save(filename)
 }
 
 export function generateSettingsPreview(settings: WageSettings) {

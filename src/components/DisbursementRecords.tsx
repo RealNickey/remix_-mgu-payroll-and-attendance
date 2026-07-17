@@ -52,8 +52,18 @@ import {
   RiCalendarEventLine,
   RiFileDownloadLine,
   RiFilePaper2Line,
+  RiEyeLine,
 } from "@remixicon/react"
 import { toast } from "sonner"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { PdfViewer } from "@/components/ui/pdf-viewer"
 
 export const DisbursementRecords: React.FC = () => {
   const { employees, contracts, attendance, settings, calculatePayroll } =
@@ -64,6 +74,11 @@ export const DisbursementRecords: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState(2026)
   const [selectedMonth, setSelectedMonth] = useState(7)
   const [filterEmployeeId, setFilterEmployeeId] = useState<string>("")
+  const [previewPdf, setPreviewPdf] = useState<{
+    url: string
+    filename: string
+    title: string
+  } | null>(null)
 
   const months = [
     { value: 1, label: "January" },
@@ -140,6 +155,7 @@ export const DisbursementRecords: React.FC = () => {
   }, [selectedMonth])
 
   // Trigger global downloads
+  // Trigger global downloads & previews
   const handleDownloadSummary = () => {
     if (payrollData.length === 0) return
     try {
@@ -163,6 +179,36 @@ export const DisbursementRecords: React.FC = () => {
     }
   }
 
+  const handlePreviewSummary = () => {
+    if (payrollData.length === 0) return
+    try {
+      const cycleStartStrFormatted = new Date(
+        formatDateKey(billingCycleDates[0])
+      ).toLocaleDateString("en-GB")
+      const cycleEndStrFormatted = new Date(
+        formatDateKey(billingCycleDates[billingCycleDates.length - 1])
+      ).toLocaleDateString("en-GB")
+      const result = generateSummaryReport(
+        payrollData,
+        monthLabel,
+        selectedYear,
+        cycleStartStrFormatted,
+        cycleEndStrFormatted,
+        true
+      )
+      if (result) {
+        setPreviewPdf({
+          url: result.url,
+          filename: result.filename,
+          title: `Disbursement Summary — ${monthLabel} ${selectedYear}`,
+        })
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error("Failed to preview PDF summary report.")
+    }
+  }
+
   const handleDownloadAttendanceReport = () => {
     if (payrollData.length === 0) return
     try {
@@ -171,6 +217,28 @@ export const DisbursementRecords: React.FC = () => {
     } catch (e) {
       console.error(e)
       toast.error("Failed to generate PDF attendance report.")
+    }
+  }
+
+  const handlePreviewAttendanceReport = () => {
+    if (payrollData.length === 0) return
+    try {
+      const result = generateAttendanceReport(
+        payrollData,
+        monthLabel,
+        selectedYear,
+        true
+      )
+      if (result) {
+        setPreviewPdf({
+          url: result.url,
+          filename: result.filename,
+          title: `Attendance Report — ${monthLabel} ${selectedYear}`,
+        })
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error("Failed to preview PDF attendance report.")
     }
   }
 
@@ -188,6 +256,30 @@ export const DisbursementRecords: React.FC = () => {
     } catch (e) {
       console.error(e)
       toast.error("Failed to generate employee receipt PDF.")
+    }
+  }
+
+  const handlePreviewEmployeeReceipt = (row: any) => {
+    try {
+      const empAttendance = attendance[row.employeeId] || {}
+      const result = generateEmployeeReceipt(
+        row,
+        empAttendance,
+        billingCycleDates,
+        monthLabel,
+        selectedYear,
+        true
+      )
+      if (result) {
+        setPreviewPdf({
+          url: result.url,
+          filename: result.filename,
+          title: `Receipt — ${row.name}`,
+        })
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error("Failed to preview employee receipt PDF.")
     }
   }
 
@@ -379,18 +471,45 @@ export const DisbursementRecords: React.FC = () => {
                   </ComboboxList>
                 </ComboboxContent>
               </Combobox>
-              <Button onClick={handleDownloadSummary} size="sm">
-                <RiFileDownloadLine data-icon="inline-start" />
-                Summary Report
-              </Button>
-              <Button
-                onClick={handleDownloadAttendanceReport}
-                size="sm"
-                variant="outline"
-              >
-                <RiFilePaper2Line data-icon="inline-start" />
-                Attendance Report
-              </Button>
+              <div className="inline-flex rounded-lg shadow-sm">
+                <Button
+                  onClick={handleDownloadSummary}
+                  size="sm"
+                  className="rounded-r-none border-r border-primary-foreground/10 cursor-pointer"
+                >
+                  <RiFileDownloadLine className="size-4 mr-1.5" />
+                  Summary Report
+                </Button>
+                <Button
+                  onClick={handlePreviewSummary}
+                  size="sm"
+                  className="rounded-l-none px-2.5 cursor-pointer"
+                  title="Preview Summary Report"
+                >
+                  <RiEyeLine className="size-4" />
+                </Button>
+              </div>
+
+              <div className="inline-flex rounded-lg shadow-sm">
+                <Button
+                  onClick={handleDownloadAttendanceReport}
+                  size="sm"
+                  variant="outline"
+                  className="rounded-r-none border-r-0 cursor-pointer"
+                >
+                  <RiFilePaper2Line className="size-4 mr-1.5" />
+                  Attendance Report
+                </Button>
+                <Button
+                  onClick={handlePreviewAttendanceReport}
+                  size="sm"
+                  variant="outline"
+                  className="rounded-l-none px-2.5 border-l-slate-200 cursor-pointer"
+                  title="Preview Attendance Report"
+                >
+                  <RiEyeLine className="size-4" />
+                </Button>
+              </div>
             </div>
           )}
         </CardHeader>
@@ -480,14 +599,27 @@ export const DisbursementRecords: React.FC = () => {
                           {formatIndianRupees(row.totalPay)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            size="xs"
-                            variant="outline"
-                            onClick={() => handleDownloadEmployeeReceipt(row)}
-                          >
-                            <RiFileDownloadLine data-icon="inline-start" />
-                            Receipt PDF
-                          </Button>
+                          <div className="inline-flex rounded-md shadow-xs">
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              className="rounded-r-none border-r-0 cursor-pointer"
+                              onClick={() => handleDownloadEmployeeReceipt(row)}
+                              title="Download Receipt"
+                            >
+                              <RiFileDownloadLine className="mr-1 size-3" />
+                              Receipt PDF
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              className="rounded-l-none pl-1.5 pr-1.5 border-l-slate-200 cursor-pointer"
+                              onClick={() => handlePreviewEmployeeReceipt(row)}
+                              title="Preview Receipt"
+                            >
+                              <RiEyeLine className="size-3.5" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -498,6 +630,67 @@ export const DisbursementRecords: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* PDF Preview Dialog */}
+      <Dialog
+        open={!!previewPdf}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (previewPdf) URL.revokeObjectURL(previewPdf.url)
+            setPreviewPdf(null)
+          }
+        }}
+      >
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col overflow-hidden p-0 sm:rounded-xl">
+          <DialogHeader className="px-6 py-4 border-b border-slate-100 shrink-0 bg-slate-50/50">
+            <DialogTitle className="text-lg font-bold text-slate-800">
+              {previewPdf?.title}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Preview before downloading
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden bg-slate-100/50 relative">
+            {previewPdf && (
+              <PdfViewer
+                file={previewPdf.url}
+                mode="scroll"
+                className="w-full h-full border-none rounded-none"
+              />
+            )}
+          </div>
+          <DialogFooter className="px-6 py-4 border-t border-slate-100 shrink-0 bg-white flex items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (previewPdf) URL.revokeObjectURL(previewPdf.url)
+                setPreviewPdf(null)
+              }}
+              className="rounded-xl cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-primary hover:bg-primary/95 text-primary-foreground rounded-xl gap-2 cursor-pointer flex items-center"
+              onClick={() => {
+                if (previewPdf) {
+                  const a = document.createElement("a")
+                  a.href = previewPdf.url
+                  a.download = previewPdf.filename
+                  document.body.appendChild(a)
+                  a.click()
+                  document.body.removeChild(a)
+                  toast.success("Downloaded", {
+                    description: `${previewPdf.title} has been downloaded.`,
+                  })
+                }
+              }}
+            >
+              <RiFileDownloadLine className="size-4" /> Download PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
