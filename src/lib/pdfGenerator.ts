@@ -1,3 +1,6 @@
+
+import pdfMake from "pdfmake/build/pdfmake";
+import * as pdfFonts from "pdfmake/build/vfs_fonts";
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import type { PayrollRow } from "./db"
@@ -407,133 +410,40 @@ export function generateEmployeeReceipt(
   sectionName?: string,
   asPreview?: boolean
 ): { url: string; filename: string } | void {
-  // Formal Landscape Certificate
-  const doc = new jsPDF({
-    orientation: "landscape",
-    unit: "mm",
-    format: "a4",
-  })
 
-  const pageWidth = doc.internal.pageSize.width // 297mm
-  const pageHeight = doc.internal.pageSize.height // 210mm
-  const margin = 12
-
-  // 1. Institution Headings
-  doc.setFont("Helvetica", "bold")
-  doc.setFontSize(15)
-  doc.setTextColor(30, 41, 59)
-  doc.text("MAHATMA GANDHI UNIVERSITY", pageWidth / 2, 14, { align: "center" })
-
-  doc.setFont("Helvetica", "normal")
-  doc.setFontSize(11)
-  doc.setTextColor(71, 85, 105)
   const displaySection = ((sectionName || "Ad.B5") + " SECTION").toUpperCase()
-  doc.text(displaySection, pageWidth / 2, 20, { align: "center" })
 
-  doc.setFont("Helvetica", "bold")
-  doc.setFontSize(12)
-  doc.setTextColor(15, 23, 42)
-  doc.text(
-    `Attendance sheet for the month of ${monthName} ${year}`,
-    pageWidth / 2,
-    26,
-    { align: "center" }
-  )
-
-  // 2. Employee Info & Contract U.O. details
-  doc.setFont("Helvetica", "normal")
-  doc.setFontSize(10)
-  doc.setTextColor(15, 23, 42)
-
-  // Left Details
-  doc.text(`Name of Employee: Sri/Smt. ${row.name}`, margin, 35)
-  doc.text(`Designation: ${row.category}`, margin, 40)
-
-  // Right Details (U.O. reference)
-  const goNumber =
-    row.relevantContract?.goNumber ||
-    "......................................................."
+  const goNumber = row.relevantContract?.goNumber || "......................................................."
   let goDateFormatted = "..................................."
   if (row.relevantContract?.goDate) {
     const dParts = row.relevantContract.goDate.split("-")
     goDateFormatted = `${dParts[2]}/${dParts[1]}/${dParts[0]}`
   }
 
-  doc.text(`U.O. No: ${goNumber}`, pageWidth - margin - 120, 35)
-  doc.text(`Order Issue Date: ${goDateFormatted}`, pageWidth - margin - 120, 40)
-
-  // 3. Grid Table
-  // Headers: "Session", "1", "2", ... "31"
-  const colHeaders = ["Session"]
+  const colHeaders = [{text: "Session", style: "tableHeader"}];
   for (let i = 1; i <= 31; i++) {
-    colHeaders.push(String(i))
+    colHeaders.push({text: String(i), style: "tableHeader"});
   }
 
-  // Row Data for FN and AN
-  const fnRow = ["FN"]
-  const anRow = ["AN"]
+  const fnRow: { text: string, style: string }[] = [{text: "FN", style: "tableHeaderFnAn"}];
+  const anRow: { text: string, style: string }[] = [{text: "AN", style: "tableHeaderFnAn"}];
 
   for (let i = 0; i < 31; i++) {
     if (i < billingCycleDates.length) {
       const dateStr = formatDateKey(billingCycleDates[i])
       const record = attendanceData[dateStr]
-      fnRow.push(record?.fn ? "X" : "")
-      anRow.push(record?.an ? "X" : "")
+      fnRow.push({text: record?.fn ? "X" : "", style: "tableCell"});
+      anRow.push({text: record?.an ? "X" : "", style: "tableCell"});
     } else {
-      fnRow.push("")
-      anRow.push("")
+      fnRow.push({text: "", style: "tableCell"});
+      anRow.push({text: "", style: "tableCell"});
     }
   }
 
-  autoTable(doc, {
-    startY: 46,
-    head: [colHeaders],
-    body: [fnRow, anRow],
-    theme: "grid",
-    headStyles: {
-      fillColor: [51, 65, 85],
-      textColor: [255, 255, 255],
-      fontSize: 8,
-      halign: "center",
-      valign: "middle",
-    },
-    bodyStyles: {
-      fontSize: 8,
-      halign: "center",
-      textColor: [15, 23, 42],
-      cellPadding: 1.5,
-    },
-    columnStyles: {
-      0: { fontStyle: "bold", fillColor: [241, 245, 249], cellWidth: 20 },
-    },
-    margin: { left: margin, right: margin },
-  })
-
-  const tableBottom = (doc as any).lastAutoTable.finalY || 65
-
-  // 4. Certification Text
-  const todayStr = new Date().toLocaleDateString("en-GB") // DD/MM/YYYY
+  const todayStr = new Date().toLocaleDateString("en-GB")
   const daysString = `${row.regularDays.toFixed(1)} (figures) ${daysToWords(row.regularDays)} (words) (including holidays duty if any)`
-
-  // Certification paragraph
-  doc.setFont("Helvetica", "normal")
-  doc.setFontSize(9.5)
-  doc.setTextColor(30, 41, 59)
-
   const certText = `Certified that Sri/Smt ${row.name} Recruited through the Employment Exchange/Local notification has/have attended duty for ${row.regularDays.toFixed(1)} Days consecutively during the month of ${monthName} ${year} and have not completed 179 days on duty as on ${todayStr} today.`
 
-  // Wrap text
-  const splitCert = doc.splitTextToSize(certText, pageWidth - margin * 2)
-  doc.text(splitCert, margin, tableBottom + 10)
-
-  // Total Days Line
-  doc.setFont("Helvetica", "bold")
-  doc.text(`Total Days Attended: `, margin, tableBottom + 22)
-  doc.setFont("Helvetica", "normal")
-  doc.text(daysString, margin + 36, tableBottom + 22)
-
-  // 5. Holiday dates worked
-  // Find all holiday dates
   const holidayDatesWorked: string[] = []
   billingCycleDates.forEach((date) => {
     const dateStr = formatDateKey(date)
@@ -543,143 +453,184 @@ export function generateEmployeeReceipt(
       holidayDatesWorked.push(`${dParts[2]}/${dParts[1]}/${dParts[0]}`)
     }
   })
+  const holidayStr = holidayDatesWorked.length > 0 ? holidayDatesWorked.join(", ") : "None"
 
-  const holidayStr =
-    holidayDatesWorked.length > 0 ? holidayDatesWorked.join(", ") : "None"
-  doc.setFont("Helvetica", "bold")
-  doc.text(`Holiday Dates Worked: `, margin, tableBottom + 28)
-  doc.setFont("Helvetica", "normal")
-  doc.text(holidayStr, margin + 40, tableBottom + 28)
-
-  // 6. Signatories Block (Assistant, SO, AR, DR)
-  const sigY = pageHeight - 16
-  const colWidth = (pageWidth - margin * 2) / 4
-
-  doc.setFont("Helvetica", "normal")
-  doc.setFontSize(9)
-
-  // Drawing signature lines and text
-  const signatories = [
-    { title: "Assistant", x: margin + colWidth * 0.5 },
-    { title: "SO (Section Officer)", x: margin + colWidth * 1.5 },
-    { title: "AR (Assistant Registrar)", x: margin + colWidth * 2.5 },
-    { title: "DR (Deputy Registrar)", x: margin + colWidth * 3.5 },
-  ]
-
-  signatories.forEach((sig) => {
-    // Draw horizontal line above the text
-    doc.setDrawColor(148, 163, 184) // Slate-400
-    doc.line(sig.x - 22, sigY - 5, sig.x + 22, sigY - 5)
-    // Draw text
-    doc.text(sig.title, sig.x, sigY, { align: "center" })
-  })
-
-  // === 7. Second Page (Malayalam Receipts) ===
-  doc.addPage("a4", "portrait")
-
-  // Register Malayalam Font
-  doc.addFileToVFS("NotoSansMalayalam-Regular.ttf", NOTO_SANS_MALAYALAM_BASE64)
-  doc.addFont("NotoSansMalayalam-Regular.ttf", "NotoSansMalayalam", "normal")
-
-  const pWidth = doc.internal.pageSize.width // 210mm
-  const pHeight = doc.internal.pageSize.height // 297mm
-  const pMargin = 20
-  const usableWidth = pWidth - pMargin * 2 // 170mm
-
-  // Draw cut line / divider in the middle
-  doc.setDrawColor(203, 213, 225) // Slate-300
-  doc.setLineWidth(0.4)
-  doc.setLineDashPattern([2, 2], 0)
-  doc.line(pMargin, pHeight / 2, pWidth - pMargin, pHeight / 2)
-  doc.setLineDashPattern([], 0) // reset dash pattern
-
-  // --- RECEIPT 1 (Top half) ---
-  const r1Start = 20
-
-  // Title: "രസീത്"
-  doc.setFont("NotoSansMalayalam", "normal")
-  doc.setFontSize(14)
-  doc.setTextColor(15, 23, 42)
-  const title1 = "രസീത്"
-  doc.text(title1, pWidth / 2, r1Start + 10, { align: "center" })
-
-  // Underline for title
-  const title1Width = doc.getTextWidth(title1)
-  doc.setDrawColor(15, 23, 42)
-  doc.setLineWidth(0.4)
-  doc.line(
-    pWidth / 2 - title1Width / 2,
-    r1Start + 12,
-    pWidth / 2 + title1Width / 2,
-    r1Start + 12
-  )
-
-  // Body text 1
-  doc.setFontSize(11)
-  const bodyText1 =
-    "മഹാത്‍മാ ഗാന്‍ധി സർവകലാശാലയിൽ ദിവസ വേതന വ്‍യവസ്‍ഥയിൽ ജോലി ചെയ്‍യുന്‍ന എനിക്‍ക്‍ പ്‍രതിഫല തുക മാസാവസാനം ഒരുമിച്‍ചു നൽകണമെന്‍ന്‍ അപേക്‍ഷിക്‍കുന്‍നു."
-  const splitText1 = doc.splitTextToSize(bodyText1, usableWidth)
-  doc.text(splitText1, pMargin, r1Start + 24, { lineHeightFactor: 1.6 })
-
-  // Footer elements
-  const r1FooterY = r1Start + 56
-  doc.setFontSize(10.5)
-  // Left Column
-  doc.text("പ്രിയദർശിനി ഹിൽസ്", pMargin, r1FooterY)
-  doc.text("തീയതി :", pMargin, r1FooterY + 8)
-
-  // Right Column
-  const rightColX = pWidth - pMargin - 65
-  doc.text("ഒപ്പ്", rightColX, r1FooterY)
-  doc.text(`പേര് : ${row.name}`, rightColX, r1FooterY + 8)
-  doc.text("വിലാസം :", rightColX, r1FooterY + 16)
-
-  // --- RECEIPT 2 (Bottom half) ---
-  const r2Start = pHeight / 2 + 15
-
-  // Title: "രസീത്"
-  doc.setFontSize(14)
-  const title2 = "രസീത്"
-  doc.text(title2, pWidth / 2, r2Start + 10, { align: "center" })
-
-  // Underline
-  const title2Width = doc.getTextWidth(title2)
-  doc.line(
-    pWidth / 2 - title2Width / 2,
-    r2Start + 12,
-    pWidth / 2 + title2Width / 2,
-    r2Start + 12
-  )
-
-  // Body text 2 with dynamic values
-  doc.setFontSize(11)
-  const amountInWords = rupeesToMalayalamWords(row.totalPay).replace(/\u0D4D/g, "\u0D4D\u200D")
+  const amountInWords = rupeesToMalayalamWords(row.totalPay)
   const formattedPay = row.totalPay.toLocaleString("en-IN")
-  const bodyText2 = `മഹാത്‍മാ ഗാന്‍ധി സർവകലാശാലയിൽ ${monthName} ${year} ലെ ${row.regularDays.toFixed(1)} ദിവസത്‍തേക്‍കുള്‍ള കൂലിയായി Rs. ${formattedPay}/- (രൂപ ${amountInWords} മാത്‍രം) മഹാത്‍മാ ഗാന്‍ധി സർവകലാശാല ഫിനാൻസ്‍ ഓഫിസർ പക്‍കൽനിന്‍നും കൈപ്‍പറ്‍റിയിരിക്‍കുന്‍നു.`
-  const splitText2 = doc.splitTextToSize(bodyText2, usableWidth)
-  doc.text(splitText2, pMargin, r2Start + 24, { lineHeightFactor: 1.6 })
 
-  // Footer elements
-  const r2FooterY = r2Start + 56
-  doc.setFontSize(10.5)
-  // Left Column
-  doc.text("പ്രിയദർശിനി ഹിൽസ്", pMargin, r2FooterY)
-  doc.text("തീയതി :", pMargin, r2FooterY + 8)
+  const bodyText1 = "മഹാത്മാ ഗാന്ധി സർവകലാശാലയിൽ ദിവസ വേതന വ്യവസ്ഥയിൽ ജോലി ചെയ്യുന്ന എനിക്ക് പ്രതിഫല തുക മാസാവസാനം ഒരുമിച്ചു നൽകണമെന്ന് അപേക്ഷിക്കുന്നു."
+  const bodyText2 = `മഹാത്മാ ഗാന്ധി സർവകലാശാലയിൽ ${monthName} ${year} ലെ ${row.regularDays.toFixed(1)} ദിവസത്തേക്കുള്ള കൂലിയായി Rs. ${formattedPay}/- (രൂപ ${amountInWords} മാത്രം) മഹാത്മാ ഗാന്ധി സർവകലാശാല ഫിനാൻസ് ഓഫിസർ പക്കൽനിന്നും കൈപ്പറ്റിയിരിക്കുന്നു.`
 
-  // Right Column
-  doc.text("ഒപ്പ്", rightColX, r2FooterY)
-  doc.text(`പേര് : ${row.name}`, rightColX, r2FooterY + 8)
-  doc.text("വിലാസം :", rightColX, r2FooterY + 16)
+  let base64Font = NOTO_SANS_MALAYALAM_BASE64;
+  if (base64Font.includes(',')) {
+    base64Font = base64Font.split(',')[1];
+  }
 
-  // Save PDF
+  const anyPdfMake = pdfMake as any;
+  if (pdfFonts && (pdfFonts as any).pdfMake) {
+    anyPdfMake.vfs = (pdfFonts as any).pdfMake.vfs;
+  } else {
+    anyPdfMake.vfs = anyPdfMake.vfs || {};
+  }
+  anyPdfMake.vfs["NotoSansMalayalam-Regular.ttf"] = base64Font;
+
+  anyPdfMake.fonts = {
+    Roboto: {
+      normal: 'Roboto-Regular.ttf',
+      bold: 'Roboto-Medium.ttf',
+      italics: 'Roboto-Italic.ttf',
+      bolditalics: 'Roboto-MediumItalic.ttf'
+    },
+    NotoSansMalayalam: {
+      normal: 'NotoSansMalayalam-Regular.ttf',
+      bold: 'NotoSansMalayalam-Regular.ttf',
+      italics: 'NotoSansMalayalam-Regular.ttf',
+      bolditalics: 'NotoSansMalayalam-Regular.ttf'
+    }
+  };
+
+  const docDefinition: any = {
+    pageSize: 'A4',
+    pageOrientation: 'landscape',
+    pageMargins: [ 34, 40, 34, 40 ],
+    styles: {
+      header1: { fontSize: 15, bold: true, alignment: 'center', color: '#1e293b', margin: [0, 0, 0, 5] },
+      header2: { fontSize: 11, alignment: 'center', color: '#475569', margin: [0, 0, 0, 5] },
+      header3: { fontSize: 12, bold: true, alignment: 'center', color: '#0f172a', margin: [0, 0, 0, 15] },
+      empDetails: { fontSize: 10, color: '#0f172a' },
+      tableHeader: { fontSize: 8, fillColor: '#334155', color: '#ffffff', alignment: 'center', bold: true, margin: [2, 4, 2, 4] },
+      tableHeaderFnAn: { fontSize: 8, fillColor: '#f1f5f9', bold: true, alignment: 'center', color: '#0f172a', margin: [2, 4, 2, 4] },
+      tableCell: { fontSize: 8, alignment: 'center', color: '#0f172a', margin: [2, 4, 2, 4] },
+      certText: { fontSize: 9.5, color: '#1e293b', margin: [0, 10, 0, 10], lineHeight: 1.2 },
+      boldLabel: { fontSize: 10, bold: true, color: '#0f172a' },
+      normalText: { fontSize: 10, color: '#0f172a' },
+      signatory: { fontSize: 9, alignment: 'center', color: '#0f172a' },
+
+      receiptTitle: { font: 'NotoSansMalayalam', fontSize: 14, alignment: 'center', color: '#0f172a', margin: [0, 0, 0, 2] },
+      receiptBody: { font: 'NotoSansMalayalam', fontSize: 11, color: '#0f172a', lineHeight: 1.6, margin: [0, 10, 0, 25] },
+      receiptFooter: { font: 'NotoSansMalayalam', fontSize: 10.5, color: '#0f172a' }
+    },
+    content: [
+      { text: 'MAHATMA GANDHI UNIVERSITY', style: 'header1' },
+      { text: displaySection, style: 'header2' },
+      { text: `Attendance sheet for the month of ${monthName} ${year}`, style: 'header3' },
+      {
+        columns: [
+          {
+            width: '*',
+            stack: [
+              { text: `Name of Employee: Sri/Smt. ${row.name}`, style: 'empDetails', margin: [0, 0, 0, 5] },
+              { text: `Designation: ${row.category}`, style: 'empDetails' }
+            ]
+          },
+          {
+            width: 200,
+            stack: [
+              { text: `U.O. No: ${goNumber}`, style: 'empDetails', margin: [0, 0, 0, 5] },
+              { text: `Order Issue Date: ${goDateFormatted}`, style: 'empDetails' }
+            ]
+          }
+        ],
+        margin: [0, 0, 0, 15]
+      },
+      {
+        table: {
+          headerRows: 1,
+          widths: [45, ...Array(31).fill('*')],
+          body: [
+            colHeaders,
+            fnRow,
+            anRow
+          ]
+        },
+        layout: {
+          hLineWidth: function () { return 0.5; },
+          vLineWidth: function () { return 0.5; },
+          hLineColor: function () { return '#cbd5e1'; },
+          vLineColor: function () { return '#cbd5e1'; },
+          paddingLeft: function () { return 2; },
+          paddingRight: function () { return 2; },
+        }
+      },
+      { text: certText, style: 'certText' },
+      {
+        columns: [
+          { width: 120, text: 'Total Days Attended:', style: 'boldLabel' },
+          { width: '*', text: daysString, style: 'normalText' }
+        ],
+        margin: [0, 0, 0, 5]
+      },
+      {
+        columns: [
+          { width: 120, text: 'Holiday Dates Worked:', style: 'boldLabel' },
+          { width: '*', text: holidayStr, style: 'normalText' }
+        ],
+        margin: [0, 0, 0, 30]
+      },
+      {
+        columns: [
+          { stack: [{ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 120, y2: 0, lineWidth: 0.5, lineColor: '#94a3b8' }]}, { text: 'Assistant', style: 'signatory', margin: [0, 5, 0, 0] }] },
+          { stack: [{ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 120, y2: 0, lineWidth: 0.5, lineColor: '#94a3b8' }]}, { text: 'SO (Section Officer)', style: 'signatory', margin: [0, 5, 0, 0] }] },
+          { stack: [{ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 120, y2: 0, lineWidth: 0.5, lineColor: '#94a3b8' }]}, { text: 'AR (Assistant Registrar)', style: 'signatory', margin: [0, 5, 0, 0] }] },
+          { stack: [{ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 120, y2: 0, lineWidth: 0.5, lineColor: '#94a3b8' }]}, { text: 'DR (Deputy Registrar)', style: 'signatory', margin: [0, 5, 0, 0] }] }
+        ],
+        columnGap: 20
+      },
+      {
+        text: '',
+        pageBreak: 'before',
+        pageOrientation: 'portrait'
+      },
+      {
+        margin: [20, 20, 20, 20],
+        stack: [
+          { text: 'രസീത്', style: 'receiptTitle' },
+          { canvas: [{ type: 'line', x1: 180, y1: 0, x2: 230, y2: 0, lineWidth: 1 }], alignment: 'center', margin: [0, 0, 0, 15] },
+          { text: bodyText1, style: 'receiptBody' },
+          {
+            columns: [
+              { width: '*', stack: [{ text: 'പ്രിയദർശിനി ഹിൽസ്', style: 'receiptFooter', margin: [0, 0, 0, 8] }, { text: 'തീയതി :', style: 'receiptFooter' }] },
+              { width: 200, stack: [{ text: 'ഒപ്പ്', style: 'receiptFooter', margin: [0, 0, 0, 8] }, { text: `പേര് : ${row.name}`, style: 'receiptFooter', margin: [0, 0, 0, 8] }, { text: 'വിലാസം :', style: 'receiptFooter' }] }
+            ]
+          }
+        ]
+      },
+      {
+        canvas: [{ type: 'line', x1: 20, y1: 20, x2: 575, y2: 20, lineWidth: 0.5, lineColor: '#cbd5e1', dash: { length: 2 } }],
+        margin: [0, 40, 0, 40]
+      },
+      {
+        margin: [20, 0, 20, 20],
+        stack: [
+          { text: 'രസീത്', style: 'receiptTitle' },
+          { canvas: [{ type: 'line', x1: 180, y1: 0, x2: 230, y2: 0, lineWidth: 1 }], alignment: 'center', margin: [0, 0, 0, 15] },
+          { text: bodyText2, style: 'receiptBody' },
+          {
+            columns: [
+              { width: '*', stack: [{ text: 'പ്രിയദർശിനി ഹിൽസ്', style: 'receiptFooter', margin: [0, 0, 0, 8] }, { text: 'തീയതി :', style: 'receiptFooter' }] },
+              { width: 200, stack: [{ text: 'ഒപ്പ്', style: 'receiptFooter', margin: [0, 0, 0, 8] }, { text: `പേര് : ${row.name}`, style: 'receiptFooter', margin: [0, 0, 0, 8] }, { text: 'വിലാസം :', style: 'receiptFooter' }] }
+            ]
+          }
+        ]
+      }
+    ]
+  };
+
+  const pdfDocGenerator = anyPdfMake.createPdf(docDefinition);
+
   const sanitizedEmployeeName = row.name.replace(/[^a-zA-Z0-9]/g, "_")
   const filename = `Receipt_${sanitizedEmployeeName}_${monthName}_${year}.pdf`
-  if (asPreview) {
-    return { url: URL.createObjectURL(doc.output("blob")), filename }
-  }
-  doc.save(filename)
-}
 
+  if (asPreview) {
+    return new Promise((resolve) => {
+        pdfDocGenerator.getBlob((blob: Blob) => {
+            resolve({ url: URL.createObjectURL(blob), filename })
+        });
+    }) as any;
+  }
+
+  pdfDocGenerator.download(filename);
+}
 export function generateSettingsPreview(settings: WageSettings) {
   const doc = new jsPDF({
     orientation: "portrait",
