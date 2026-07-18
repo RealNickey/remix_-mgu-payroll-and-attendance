@@ -617,7 +617,7 @@ export function generateEmployeeReceipt(
   // Body text 1
   doc.setFontSize(11)
   const bodyText1 =
-    "മഹാത്മാ ഗാന്ധി സർവകലാശാലയിൽ ദിവസ വേതന വ്യവസ്ഥയിൽ ജോലി ചെയ്യുന്ന എനിക്ക് പ്രതിഫല തുക മാസാവസാനം ഒരുമിച്ചു നൽകണമെന്ന് അപേക്ഷിക്കുന്നു."
+    "മഹാത്‍മാ ഗാന്‍ധി സർവകലാശാലയിൽ ദിവസ വേതന വ്‍യവസ്‍ഥയിൽ ജോലി ചെയ്‍യുന്‍ന എനിക്‍ക്‍ പ്‍രതിഫല തുക മാസാവസാനം ഒരുമിച്‍ചു നൽകണമെന്‍ന്‍ അപേക്‍ഷിക്‍കുന്‍നു."
   const splitText1 = doc.splitTextToSize(bodyText1, usableWidth)
   doc.text(splitText1, pMargin, r1Start + 24, { lineHeightFactor: 1.6 })
 
@@ -653,9 +653,9 @@ export function generateEmployeeReceipt(
 
   // Body text 2 with dynamic values
   doc.setFontSize(11)
-  const amountInWords = rupeesToMalayalamWords(row.totalPay)
+  const amountInWords = rupeesToMalayalamWords(row.totalPay).replace(/\u0D4D/g, "\u0D4D\u200D")
   const formattedPay = row.totalPay.toLocaleString("en-IN")
-  const bodyText2 = `മഹാത്മാ ഗാന്ധി സർവകലാശാലയിൽ ${monthName} ${year} ലെ ${row.regularDays.toFixed(1)} ദിവസത്തേക്കുള്ള കൂലിയായി Rs. ${formattedPay}/- (രൂപ ${amountInWords} മാത്രം) മഹാത്മാ ഗാന്ധി സർവകലാശാല ഫിനാൻസ് ഓഫിസർ പക്കൽനിന്നും കൈപ്പറ്റിയിരിക്കുന്നു.`
+  const bodyText2 = `മഹാത്‍മാ ഗാന്‍ധി സർവകലാശാലയിൽ ${monthName} ${year} ലെ ${row.regularDays.toFixed(1)} ദിവസത്‍തേക്‍കുള്‍ള കൂലിയായി Rs. ${formattedPay}/- (രൂപ ${amountInWords} മാത്‍രം) മഹാത്‍മാ ഗാന്‍ധി സർവകലാശാല ഫിനാൻസ്‍ ഓഫിസർ പക്‍കൽനിന്‍നും കൈപ്‍പറ്‍റിയിരിക്‍കുന്‍നു.`
   const splitText2 = doc.splitTextToSize(bodyText2, usableWidth)
   doc.text(splitText2, pMargin, r2Start + 24, { lineHeightFactor: 1.6 })
 
