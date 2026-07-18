@@ -238,10 +238,10 @@ export const DisbursementRecords: React.FC = () => {
     }
   }
 
-  const handleDownloadEmployeeReceipt = (row: any) => {
+  const handleDownloadEmployeeReceipt = async (row: any) => {
     try {
       const empAttendance = attendance[row.employeeId] || {}
-      generateEmployeeReceipt(
+      await generateEmployeeReceipt(
         row,
         empAttendance,
         billingCycleDates,
@@ -256,10 +256,10 @@ export const DisbursementRecords: React.FC = () => {
     }
   }
 
-  const handlePreviewEmployeeReceipt = (row: any) => {
+  const handlePreviewEmployeeReceipt = async (row: any) => {
     try {
       const empAttendance = attendance[row.employeeId] || {}
-      const result = generateEmployeeReceipt(
+      const result = await generateEmployeeReceipt(
         row,
         empAttendance,
         billingCycleDates,
