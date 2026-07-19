@@ -18,6 +18,8 @@ import {
   formatDateKey,
   isDateCoveredByContract,
   doIntervalsOverlap,
+  getContractDurationDays,
+  validateConsecutiveContractsGap,
 } from "./payrollUtils"
 
 interface MguDbContextType {
@@ -40,7 +42,7 @@ interface MguDbContextType {
     endDate: string,
     goNumber: string,
     goDate: string
-  ) => void
+  ) => { success: boolean; error?: string }
   voidContract: (id: string) => void
   updateAttendance: (
     employeeId: string,
@@ -75,10 +77,10 @@ const MguDbContext = createContext<MguDbContextType | undefined>(undefined)
 
 const defaultSettings: WageSettings = {
   wageRates: {
-    Gardeners: 500,
-    Drivers: 600,
-    Cooks: 550,
-    Helpers: 450,
+    Gardeners: 525,
+    Drivers: 700,
+    Cooks: 645,
+    Helpers: 525,
   },
   otRates: {
     Gardeners: 0,
@@ -88,9 +90,9 @@ const defaultSettings: WageSettings = {
   },
   otCeilings: {
     Gardeners: 0,
-    Drivers: 5000,
-    Cooks: 5000,
-    Helpers: 5000,
+    Drivers: 2000,
+    Cooks: Number.POSITIVE_INFINITY,
+    Helpers: Number.POSITIVE_INFINITY,
   },
   section: "Ad.B5",
 }
@@ -124,12 +126,7 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
             Cooks: parsed.otRate !== undefined ? parsed.otRate : 100,
             Helpers: parsed.otRate !== undefined ? parsed.otRate : 100,
           },
-          otCeilings: parsed.otCeilings || {
-            Gardeners: 0,
-            Drivers: 5000,
-            Cooks: 5000,
-            Helpers: 5000,
-          },
+          otCeilings: parsed.otCeilings || defaultSettings.otCeilings,
           otRate: parsed.otRate,
           section: parsed.section || "Ad.B5",
         }
@@ -200,7 +197,53 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
     endDate: string,
     goNumber: string,
     goDate: string
-  ) => {
+  ): { success: boolean; error?: string } => {
+    // 1. Validate max duration (90 days)
+    const duration = getContractDurationDays(startDate, endDate)
+    if (duration > 90) {
+      return {
+        success: false,
+        error: `Contract duration (${duration} days) exceeds the maximum allowable period of 90 days.`,
+      }
+    }
+    if (duration < 1) {
+      return {
+        success: false,
+        error: "Contract end date must be on or after the start date.",
+      }
+    }
+
+    // 2. Validate consecutive contracts & overlapping rules for the same employee
+    const empContracts = contracts.filter((c) => c.employeeId === employeeId)
+    for (const c of empContracts) {
+      // Overlap validation
+      if (doIntervalsOverlap(c.startDate, c.endDate, startDate, endDate)) {
+        return {
+          success: false,
+          error: `Contract dates (${startDate} to ${endDate}) overlap with an existing contract (${c.startDate} to ${c.endDate}).`,
+        }
+      }
+      // Gap validation: must have at least 1 full-day gap
+      if (c.endDate < startDate) {
+        const gap = validateConsecutiveContractsGap(c.endDate, startDate)
+        if (!gap.isValid) {
+          return {
+            success: false,
+            error: `Consecutive contract violation: There must be at least 1 full-day gap between contracts. Existing contract ends on ${c.endDate}.`,
+          }
+        }
+      }
+      if (endDate < c.startDate) {
+        const gap = validateConsecutiveContractsGap(endDate, c.startDate)
+        if (!gap.isValid) {
+          return {
+            success: false,
+            error: `Consecutive contract violation: There must be at least 1 full-day gap between contracts. Existing contract starts on ${c.startDate}.`,
+          }
+        }
+      }
+    }
+
     const newContract: Contract = {
       id: crypto.randomUUID(),
       employeeId,
@@ -210,6 +253,7 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
       goDate,
     }
     saveContracts([...contracts, newContract])
+    return { success: true }
   }
 
   const voidContract = (id: string) => {
@@ -372,14 +416,19 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
 
       const empAttendance = attendance[emp.id] || {}
 
+      const processedDates = new Set<string>()
+
       dates.forEach((date) => {
         const dateStr = formatDateKey(date)
+        if (processedDates.has(dateStr)) return
 
         // Is this date covered by a contract?
         const isCovered = empContracts.some(
           (c) => c.startDate <= dateStr && dateStr <= c.endDate
         )
         if (!isCovered) return
+
+        processedDates.add(dateStr)
 
         const record = empAttendance[dateStr]
         if (!record) return
@@ -388,8 +437,8 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
         if (record.fn) regularDays += 0.5
         if (record.an) regularDays += 0.5
 
-        // Overtime: based on category rate
-        if (record.ot) {
+        // Overtime: based on category rate, applicable only when both FN and AN are worked
+        if (record.ot && record.fn && record.an) {
           otDays += 1
         }
 
@@ -413,7 +462,7 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
       const regularPay = regularDays * baseRate
 
       const otRate = settings.otRates?.[emp.category] ?? settings.otRate ?? 0
-      const otCeiling = settings.otCeilings?.[emp.category] ?? 5000
+      const otCeiling = settings.otCeilings?.[emp.category] ?? defaultSettings.otCeilings[emp.category]
       let otPay = otDays * otRate
       if (otPay > otCeiling) {
         otPay = otCeiling

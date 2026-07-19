@@ -52,10 +52,10 @@ export const SettingsWorkspace = () => {
   } = useMguDb()
 
   // Draft states
-  const [gardenersRate, setGardenersRate] = useState<number | "">(500)
-  const [driversRate, setDriversRate] = useState<number | "">(600)
-  const [cooksRate, setCooksRate] = useState<number | "">(550)
-  const [helpersRate, setHelpersRate] = useState<number | "">(450)
+  const [gardenersRate, setGardenersRate] = useState<number | "">(525)
+  const [driversRate, setDriversRate] = useState<number | "">(700)
+  const [cooksRate, setCooksRate] = useState<number | "">(645)
+  const [helpersRate, setHelpersRate] = useState<number | "">(525)
 
   const [selectedSection, setSelectedSection] = useState<"Ad.B5" | "Ad.B7" | "Estate 1" | "Estate 2">("Ad.B5")
 
@@ -65,9 +65,9 @@ export const SettingsWorkspace = () => {
   const [helpersOtRate, setHelpersOtRate] = useState<number | "">(100)
 
   const [gardenersOtCeiling, setGardenersOtCeiling] = useState<number | "">(0)
-  const [driversOtCeiling, setDriversOtCeiling] = useState<number | "">(5000)
-  const [cooksOtCeiling, setCooksOtCeiling] = useState<number | "">(5000)
-  const [helpersOtCeiling, setHelpersOtCeiling] = useState<number | "">(5000)
+  const [driversOtCeiling, setDriversOtCeiling] = useState<number | "">(2000)
+  const [cooksOtCeiling, setCooksOtCeiling] = useState<number | "">(0)
+  const [helpersOtCeiling, setHelpersOtCeiling] = useState<number | "">(0)
 
   // Import states
   const [importData, setImportData] = useState<any>(null)
@@ -82,10 +82,10 @@ export const SettingsWorkspace = () => {
   // Initialize draft values when settings load
   useEffect(() => {
     if (settings) {
-      setGardenersRate(settings.wageRates.Gardeners)
-      setDriversRate(settings.wageRates.Drivers)
-      setCooksRate(settings.wageRates.Cooks)
-      setHelpersRate(settings.wageRates.Helpers)
+      setGardenersRate(settings.wageRates?.Gardeners ?? 525)
+      setDriversRate(settings.wageRates?.Drivers ?? 700)
+      setCooksRate(settings.wageRates?.Cooks ?? 645)
+      setHelpersRate(settings.wageRates?.Helpers ?? 525)
 
       setGardenersOtRate(settings.otRates?.Gardeners ?? 0)
       setDriversOtRate(settings.otRates?.Drivers ?? 100)
@@ -93,9 +93,9 @@ export const SettingsWorkspace = () => {
       setHelpersOtRate(settings.otRates?.Helpers ?? 100)
 
       setGardenersOtCeiling(settings.otCeilings?.Gardeners ?? 0)
-      setDriversOtCeiling(settings.otCeilings?.Drivers ?? 5000)
-      setCooksOtCeiling(settings.otCeilings?.Cooks ?? 5000)
-      setHelpersOtCeiling(settings.otCeilings?.Helpers ?? 5000)
+      setDriversOtCeiling(settings.otCeilings?.Drivers ?? 2000)
+      setCooksOtCeiling(settings.otCeilings?.Cooks ?? 0)
+      setHelpersOtCeiling(settings.otCeilings?.Helpers ?? 0)
 
       setSelectedSection(settings.section || "Ad.B5")
     }

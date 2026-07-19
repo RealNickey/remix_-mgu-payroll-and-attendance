@@ -256,7 +256,12 @@ export const ContractManagement = ({
     }
 
     const previousContracts = [...contracts]
-    addContract(employeeId, startDate, endDate, goNumber.trim(), goDate)
+    const result = addContract(employeeId, startDate, endDate, goNumber.trim(), goDate)
+    if (!result.success) {
+      toast.error(result.error || "Failed to issue contract.")
+      return
+    }
+
     const emp = employees.find((e) => e.id === employeeId)
     toast.success(`Service contract issued for ${emp?.name || "employee"}.`, {
       action: {

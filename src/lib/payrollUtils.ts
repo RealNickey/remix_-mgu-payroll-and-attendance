@@ -155,3 +155,44 @@ export function getEmployeeInitials(name: string): string {
     .join("")
     .toUpperCase()
 }
+
+export function getContractDurationDays(
+  startDateStr: string,
+  endDateStr: string
+): number {
+  if (!startDateStr || !endDateStr) return 0
+  const startParts = startDateStr.split("-").map(Number)
+  const endParts = endDateStr.split("-").map(Number)
+  const start = new Date(startParts[0], startParts[1] - 1, startParts[2])
+  const end = new Date(endParts[0], endParts[1] - 1, endParts[2])
+  const diffTime = end.getTime() - start.getTime()
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1
+  return diffDays
+}
+
+export function isValidContractDuration(
+  startDateStr: string,
+  endDateStr: string,
+  maxDays: number = 90
+): boolean {
+  const duration = getContractDurationDays(startDateStr, endDateStr)
+  return duration >= 1 && duration <= maxDays
+}
+
+export function validateConsecutiveContractsGap(
+  c1EndStr: string,
+  c2StartStr: string
+): { isValid: boolean; gapDays: number } {
+  if (!c1EndStr || !c2StartStr) return { isValid: false, gapDays: 0 }
+  const c1Parts = c1EndStr.split("-").map(Number)
+  const c2Parts = c2StartStr.split("-").map(Number)
+  const c1End = new Date(c1Parts[0], c1Parts[1] - 1, c1Parts[2])
+  const c2Start = new Date(c2Parts[0], c2Parts[1] - 1, c2Parts[2])
+  const diffTime = c2Start.getTime() - c1End.getTime()
+  const gapDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) - 1
+  return {
+    isValid: gapDays >= 1,
+    gapDays,
+  }
+}
+
