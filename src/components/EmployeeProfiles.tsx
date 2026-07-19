@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useMguDb } from "@/lib/db"
 import type { JobCategory, Employee } from "@/lib/types"
 import {
@@ -62,11 +62,19 @@ export const EmployeeProfiles = () => {
   const {
     employees,
     contracts,
+    settings,
     addEmployee,
     updateEmployee,
     deleteEmployee,
     saveEmployees,
   } = useMguDb()
+
+  const categoriesList = useMemo(() => {
+    if (settings?.categories && settings.categories.length > 0) {
+      return settings.categories
+    }
+    return ["Gardeners", "Drivers", "Cooks", "Helpers"]
+  }, [settings?.categories])
 
   // Form states
   const [name, setName] = useState("")
@@ -365,10 +373,11 @@ export const EmployeeProfiles = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        <SelectItem value="Gardeners">Gardeners</SelectItem>
-                        <SelectItem value="Drivers">Drivers</SelectItem>
-                        <SelectItem value="Cooks">Cooks</SelectItem>
-                        <SelectItem value="Helpers">Helpers</SelectItem>
+                        {categoriesList.map((cat: string) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
                       </SelectGroup>
                     </SelectContent>
                   </Select>

@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useMguDb } from "@/lib/db"
-import { getContractStatus } from "@/lib/payrollUtils"
+import { getContractStatus, doIntervalsOverlap } from "@/lib/payrollUtils"
 import {
   Card,
   CardHeader,
@@ -100,6 +100,45 @@ export const ContractManagement = ({
     const to = endDate ? parseLocalDate(endDate) : undefined
     return { from, to }
   }, [startDate, endDate])
+
+  // Find all contracts for selected employee
+  const empContracts = useMemo(() => {
+    if (!employeeId) return []
+    return contracts.filter((c) => c.employeeId === employeeId)
+  }, [contracts, employeeId])
+
+  // Dates covered by existing contracts for selected employee
+  const existingContractDates = useMemo(() => {
+    const dates: Date[] = []
+    empContracts.forEach((c) => {
+      const s = parseLocalDate(c.startDate)
+      const e = parseLocalDate(c.endDate)
+      if (s && e) {
+        const current = new Date(s)
+        while (current <= e) {
+          dates.push(new Date(current))
+          current.setDate(current.getDate() + 1)
+        }
+      }
+    })
+    return dates
+  }, [empContracts])
+
+  // Live overlap check
+  const overlapCheck = useMemo(() => {
+    if (!employeeId || !startDate || !endDate) {
+      return { isOverlap: false, error: "" }
+    }
+    for (const c of empContracts) {
+      if (doIntervalsOverlap(c.startDate, c.endDate, startDate, endDate)) {
+        return {
+          isOverlap: true,
+          error: `Contract dates (${startDate} to ${endDate}) overlap with an existing contract (${c.startDate} to ${c.endDate} - U.O. ${c.goNumber}).`,
+        }
+      }
+    }
+    return { isOverlap: false, error: "" }
+  }, [employeeId, startDate, endDate, empContracts])
 
   const handleRangeSelect = (
     _range: DateRange | undefined,
@@ -470,7 +509,7 @@ export const ContractManagement = ({
                       )}
                     </Field>
 
-                    <Field data-invalid={startDateError ? "true" : undefined}>
+                    <Field data-invalid={startDateError || overlapCheck.isOverlap ? "true" : undefined}>
                       <FieldLabel htmlFor="contractPeriod">
                         Contract Period
                       </FieldLabel>
@@ -481,6 +520,15 @@ export const ContractManagement = ({
                           date={dateRange}
                           setDate={() => {}}
                           onSelect={handleRangeSelect}
+                          isError={startDateError || overlapCheck.isOverlap}
+                          errorMessage={
+                            overlapCheck.isOverlap
+                              ? overlapCheck.error
+                              : startDateError
+                                ? "Contract period is required."
+                                : undefined
+                          }
+                          overlappingDays={existingContractDates}
                         />
                         <Button
                           type="button"
@@ -498,6 +546,11 @@ export const ContractManagement = ({
                       </div>
                       {startDateError && (
                         <FieldError>Contract period is required.</FieldError>
+                      )}
+                      {overlapCheck.isOverlap && (
+                        <FieldError className="font-semibold text-destructive">
+                          {overlapCheck.error}
+                        </FieldError>
                       )}
                       {startDate && endDate && (
                         <p className="mt-1 text-xs text-muted-foreground">

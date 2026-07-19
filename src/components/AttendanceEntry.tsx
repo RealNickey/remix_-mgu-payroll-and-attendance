@@ -137,10 +137,11 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
   const years = [currentYear - 1, currentYear, currentYear + 1]
 
   // Billing cycle dates
-  const billingCycleDates = useMemo(
-    () => getBillingCycleDates(selectedYear, selectedMonth),
-    [selectedYear, selectedMonth]
-  )
+  const billingCycleDates = useMemo(() => {
+    const startDay = settings.billingCycle?.startDay ?? 26
+    const endDay = settings.billingCycle?.endDay ?? 25
+    return getBillingCycleDates(selectedYear, selectedMonth, startDay, endDay)
+  }, [selectedYear, selectedMonth, settings.billingCycle])
 
   const cycleStartDateStr = useMemo(
     () =>

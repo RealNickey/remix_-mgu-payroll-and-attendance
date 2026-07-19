@@ -1,4 +1,9 @@
-export type JobCategory = "Gardeners" | "Drivers" | "Cooks" | "Helpers"
+export type JobCategory =
+  | "Gardeners"
+  | "Drivers"
+  | "Cooks"
+  | "Helpers"
+  | (string & {})
 
 export interface Employee {
   id: string
@@ -29,10 +34,18 @@ export interface AttendanceRecord {
 // Stored as employeeId -> dateStr -> AttendanceRecord
 export type AttendanceData = Record<string, Record<string, AttendanceRecord>>
 
+export interface BillingCycleConfig {
+  startDay: number // e.g. 26
+  endDay: number // e.g. 25
+}
+
 export interface WageSettings {
-  wageRates: Record<JobCategory, number>
-  otRates: Record<JobCategory, number>
-  otCeilings: Record<JobCategory, number>
+  categories?: string[]
+  wageRates: Record<string, number>
+  otRates: Record<string, number>
+  otCeilings: Record<string, number>
+  billingCycle?: BillingCycleConfig
   otRate?: number // kept for backward compatibility
   section: "Ad.B5" | "Ad.B7" | "Estate 1" | "Estate 2"
 }
+

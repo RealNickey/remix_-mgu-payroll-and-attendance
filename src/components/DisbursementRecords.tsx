@@ -27,6 +27,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import {
   Select,
   SelectContent,
@@ -54,6 +56,10 @@ import {
   RiFileDownloadLine,
   RiFilePaper2Line,
   RiEyeLine,
+  RiFilter3Line,
+  RiRestartLine,
+  RiSearchLine,
+  RiBriefcaseLine,
 } from "@remixicon/react"
 import { toast } from "sonner"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
@@ -63,11 +69,21 @@ export const DisbursementRecords: React.FC = () => {
   const { employees, contracts, attendance, settings, calculatePayroll } =
     useMguDb()
 
-  // Date Selection (matches Attendance workspace)
+  // Date Selection
   const currentYear = new Date().getFullYear()
   const [selectedYear, setSelectedYear] = useState(2026)
   const [selectedMonth, setSelectedMonth] = useState(7)
+
+  // Multi-Criteria Filters
   const [filterEmployeeId, setFilterEmployeeId] = useState<string>("")
+  const [filterCategory, setFilterCategory] = useState<string>("all")
+  const [filterOtStatus, setFilterOtStatus] = useState<
+    "all" | "has_ot" | "no_ot"
+  >("all")
+  const [filterMinDays, setFilterMinDays] = useState<string>("")
+  const [filterMinPay, setFilterMinPay] = useState<string>("")
+  const [searchQuery, setSearchQuery] = useState<string>("")
+
   const [previewPdf, setPreviewPdf] = useState<{
     url: string
     filename: string
@@ -93,8 +109,10 @@ export const DisbursementRecords: React.FC = () => {
 
   // Calculate current billing cycle dates
   const billingCycleDates = useMemo(() => {
-    return getBillingCycleDates(selectedYear, selectedMonth)
-  }, [selectedYear, selectedMonth])
+    const startDay = settings.billingCycle?.startDay ?? 26
+    const endDay = settings.billingCycle?.endDay ?? 25
+    return getBillingCycleDates(selectedYear, selectedMonth, startDay, endDay)
+  }, [selectedYear, selectedMonth, settings.billingCycle])
 
   const cycleStartStr = useMemo(() => {
     if (billingCycleDates.length === 0) return ""
@@ -118,16 +136,96 @@ export const DisbursementRecords: React.FC = () => {
     })
   }, [billingCycleDates])
 
-  // Compute calculations instantly
+  // Compute calculations for selected month
   const payrollData = useMemo(() => {
     return calculatePayroll(selectedYear, selectedMonth)
   }, [selectedYear, selectedMonth, employees, contracts, attendance, settings])
 
-  // Filter payroll data by employee search/select
+  // Available job categories list
+  const availableCategories = useMemo(() => {
+    if (settings.categories && settings.categories.length > 0) {
+      return settings.categories
+    }
+    const catSet = new Set<string>(["Gardeners", "Drivers", "Cooks", "Helpers"])
+    employees.forEach((e) => catSet.add(e.category))
+    payrollData.forEach((r) => catSet.add(r.category))
+    return Array.from(catSet)
+  }, [settings.categories, employees, payrollData])
+
+  // Filter payroll data by multi-criteria
   const filteredPayrollData = useMemo(() => {
-    if (!filterEmployeeId) return payrollData
-    return payrollData.filter((r) => r.employeeId === filterEmployeeId)
-  }, [payrollData, filterEmployeeId])
+    return payrollData.filter((r) => {
+      // 1. Employee ID filter
+      if (filterEmployeeId && r.employeeId !== filterEmployeeId) {
+        return false
+      }
+
+      // 2. Job Category filter
+      if (filterCategory !== "all" && r.category !== filterCategory) {
+        return false
+      }
+
+      // 3. Overtime status filter
+      if (filterOtStatus === "has_ot" && r.otDays <= 0) {
+        return false
+      }
+      if (filterOtStatus === "no_ot" && r.otDays > 0) {
+        return false
+      }
+
+      // 4. Min Regular Days filter
+      if (filterMinDays !== "" && !isNaN(Number(filterMinDays))) {
+        if (r.regularDays < Number(filterMinDays)) return false
+      }
+
+      // 5. Min Total Pay filter
+      if (filterMinPay !== "" && !isNaN(Number(filterMinPay))) {
+        if (r.totalPay < Number(filterMinPay)) return false
+      }
+
+      // 6. Free text search
+      if (searchQuery.trim() !== "") {
+        const q = searchQuery.toLowerCase().trim()
+        const matchesName = r.name.toLowerCase().includes(q)
+        const matchesCat = r.category.toLowerCase().includes(q)
+        const matchesBank = r.bankAccount.toLowerCase().includes(q)
+        const matchesUO =
+          r.relevantContract?.goNumber.toLowerCase().includes(q) ?? false
+        if (!matchesName && !matchesCat && !matchesBank && !matchesUO) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }, [
+    payrollData,
+    filterEmployeeId,
+    filterCategory,
+    filterOtStatus,
+    filterMinDays,
+    filterMinPay,
+    searchQuery,
+  ])
+
+  // Check active filter count
+  const hasActiveFilters =
+    !!filterEmployeeId ||
+    filterCategory !== "all" ||
+    filterOtStatus !== "all" ||
+    filterMinDays !== "" ||
+    filterMinPay !== "" ||
+    searchQuery.trim() !== ""
+
+  const handleResetFilters = () => {
+    setFilterEmployeeId("")
+    setFilterCategory("all")
+    setFilterOtStatus("all")
+    setFilterMinDays("")
+    setFilterMinPay("")
+    setSearchQuery("")
+    toast.success("Filters reset.")
+  }
 
   // KPI aggregates
   const activeStaff = payrollData.length
@@ -148,10 +246,14 @@ export const DisbursementRecords: React.FC = () => {
     return months.find((m) => m.value === selectedMonth)?.label || "Month"
   }, [selectedMonth])
 
-  // Trigger global downloads
-  // Trigger global downloads & previews
+  // Global report generation handlers using filtered data
+  const dataForReports = filteredPayrollData
+
   const handleDownloadSummary = () => {
-    if (payrollData.length === 0) return
+    if (dataForReports.length === 0) {
+      toast.error("No records match the current filters.")
+      return
+    }
     try {
       const cycleStartStrFormatted = new Date(
         formatDateKey(billingCycleDates[0])
@@ -160,7 +262,7 @@ export const DisbursementRecords: React.FC = () => {
         formatDateKey(billingCycleDates[billingCycleDates.length - 1])
       ).toLocaleDateString("en-GB")
       generateSummaryReport(
-        payrollData,
+        dataForReports,
         monthLabel,
         selectedYear,
         cycleStartStrFormatted,
@@ -175,7 +277,10 @@ export const DisbursementRecords: React.FC = () => {
   }
 
   const handlePreviewSummary = () => {
-    if (payrollData.length === 0) return
+    if (dataForReports.length === 0) {
+      toast.error("No records match the current filters.")
+      return
+    }
     try {
       const cycleStartStrFormatted = new Date(
         formatDateKey(billingCycleDates[0])
@@ -184,7 +289,7 @@ export const DisbursementRecords: React.FC = () => {
         formatDateKey(billingCycleDates[billingCycleDates.length - 1])
       ).toLocaleDateString("en-GB")
       const result = generateSummaryReport(
-        payrollData,
+        dataForReports,
         monthLabel,
         selectedYear,
         cycleStartStrFormatted,
@@ -206,9 +311,17 @@ export const DisbursementRecords: React.FC = () => {
   }
 
   const handleDownloadAttendanceReport = () => {
-    if (payrollData.length === 0) return
+    if (dataForReports.length === 0) {
+      toast.error("No records match the current filters.")
+      return
+    }
     try {
-      generateAttendanceReport(payrollData, monthLabel, selectedYear, settings.section)
+      generateAttendanceReport(
+        dataForReports,
+        monthLabel,
+        selectedYear,
+        settings.section
+      )
       toast.success("General attendance report downloaded.")
     } catch (e) {
       console.error(e)
@@ -217,10 +330,13 @@ export const DisbursementRecords: React.FC = () => {
   }
 
   const handlePreviewAttendanceReport = () => {
-    if (payrollData.length === 0) return
+    if (dataForReports.length === 0) {
+      toast.error("No records match the current filters.")
+      return
+    }
     try {
       const result = generateAttendanceReport(
-        payrollData,
+        dataForReports,
         monthLabel,
         selectedYear,
         settings.section,
@@ -240,10 +356,13 @@ export const DisbursementRecords: React.FC = () => {
   }
 
   const handleDownloadMonthlyGridSheet = () => {
-    if (payrollData.length === 0) return
+    if (dataForReports.length === 0) {
+      toast.error("No records match the current filters.")
+      return
+    }
     try {
       generateMonthlyAttendanceSheet(
-        payrollData,
+        dataForReports,
         attendance,
         contracts,
         billingCycleDates,
@@ -260,10 +379,13 @@ export const DisbursementRecords: React.FC = () => {
   }
 
   const handlePreviewMonthlyGridSheet = () => {
-    if (payrollData.length === 0) return
+    if (dataForReports.length === 0) {
+      toast.error("No records match the current filters.")
+      return
+    }
     try {
       const result = generateMonthlyAttendanceSheet(
-        payrollData,
+        dataForReports,
         attendance,
         contracts,
         billingCycleDates,
@@ -457,50 +579,72 @@ export const DisbursementRecords: React.FC = () => {
         </Card>
       </div>
 
-      {/* Payroll Sheet table */}
+      {/* MULTI-CRITERIA REPORT FILTERS BAR */}
       <Card className="border-border/60 bg-card/50 backdrop-blur-md">
-        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2 font-heading text-lg font-bold">
-              <RiMoneyRupeeCircleLine className="size-5 text-primary" />
-              Payroll Preview Sheet
+        <CardHeader className="pb-3">
+          <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+            <CardTitle className="flex items-center gap-2 font-heading text-sm font-bold uppercase">
+              <RiFilter3Line className="size-4 text-primary" />
+              Report Criteria & Criteria Filters
             </CardTitle>
-            <CardDescription>
-              Calculation previews for {monthLabel} {selectedYear} billing
-              cycle.
-            </CardDescription>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs font-normal">
+                Showing {filteredPayrollData.length} of {payrollData.length} records
+              </Badge>
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={handleResetFilters}
+                  className="h-7 text-xs text-rose-500 hover:bg-rose-500/10 hover:text-rose-600"
+                >
+                  <RiRestartLine className="mr-1 size-3.5" />
+                  Reset Filters
+                </Button>
+              )}
+            </div>
           </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+            {/* 1. Free Search Input */}
+            <div className="relative">
+              <RiSearchLine className="absolute top-2.5 left-2.5 size-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search Name/U.O./Bank..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
 
-          {payrollData.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
+            {/* 2. Employee Combobox */}
+            <div>
               <Combobox
                 value={filterEmployeeId}
                 onValueChange={(val) =>
                   setFilterEmployeeId((val as string) || "")
                 }
                 itemToStringLabel={(val) => {
-                  if (val === "") return "All Employees"
+                  if (!val) return "All Staff"
                   const emp = employees.find((e) => e.id === val)
-                  return emp ? emp.name : ""
+                  return emp ? emp.name : "All Staff"
                 }}
-                itemToStringValue={(val) => val as string}
+                itemToStringValue={(val) => (val as string) || ""}
               >
                 <ComboboxInput
-                  placeholder="Filter by employee…"
+                  placeholder="Select Employee..."
                   name="employee-filter"
                   aria-label="Filter by employee"
                   autoComplete="off"
-                  className="h-8 w-52 text-xs"
+                  className="h-8 w-full text-xs"
                   showClear={!!filterEmployeeId}
                 />
                 <ComboboxContent>
                   <ComboboxEmpty>No employee found.</ComboboxEmpty>
                   <ComboboxList>
                     <ComboboxItem value="" className="flex items-center gap-2">
-                      <div className="flex size-6 items-center justify-center rounded-full border border-border/40 bg-muted text-[9px] font-bold text-muted-foreground uppercase">
-                        ALL
-                      </div>
-                      <span>All Employees</span>
+                      <span className="font-semibold text-xs">All Staff</span>
                     </ComboboxItem>
                     {employees.map((emp) => (
                       <ComboboxItem
@@ -517,6 +661,97 @@ export const DisbursementRecords: React.FC = () => {
                   </ComboboxList>
                 </ComboboxContent>
               </Combobox>
+            </div>
+
+            {/* 3. Job Category Select */}
+            <div>
+              <Select
+                value={filterCategory}
+                onValueChange={(val) => setFilterCategory(val || "all")}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <RiBriefcaseLine className="size-3.5 text-muted-foreground" />
+                    <SelectValue placeholder="Category" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {availableCategories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 4. OT Status Select */}
+            <div>
+              <Select
+                value={filterOtStatus}
+                onValueChange={(val) =>
+                  setFilterOtStatus(val as "all" | "has_ot" | "no_ot")
+                }
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <RiTimeLine className="size-3.5 text-muted-foreground" />
+                    <SelectValue placeholder="OT Status" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">All OT Status</SelectItem>
+                    <SelectItem value="has_ot">With Overtime</SelectItem>
+                    <SelectItem value="no_ot">Without Overtime</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 5. Min Days Input */}
+            <div>
+              <Input
+                type="number"
+                placeholder="Min Work Days..."
+                value={filterMinDays}
+                onChange={(e) => setFilterMinDays(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+
+            {/* 6. Min Pay Input */}
+            <div>
+              <Input
+                type="number"
+                placeholder="Min Pay (₹)..."
+                value={filterMinPay}
+                onChange={(e) => setFilterMinPay(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payroll Sheet table */}
+      <Card className="border-border/60 bg-card/50 backdrop-blur-md">
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 font-heading text-lg font-bold">
+              <RiMoneyRupeeCircleLine className="size-5 text-primary" />
+              Payroll Disbursement Report Sheet
+            </CardTitle>
+            <CardDescription>
+              Disbursement previews for {monthLabel} {selectedYear} billing cycle ({cycleStartStr} to {cycleEndStr}).
+            </CardDescription>
+          </div>
+
+          {payrollData.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex rounded-lg shadow-sm">
                 <Button
                   onClick={handleDownloadSummary}
@@ -590,8 +825,7 @@ export const DisbursementRecords: React.FC = () => {
                     No Payroll Data Available
                   </p>
                   <p className="text-xs text-muted-foreground/80">
-                    No employees have overlapping active contracts and
-                    attendance marked for this billing cycle.
+                    No employees have overlapping active contracts and attendance logged for this billing cycle.
                   </p>
                 </div>
               </Empty>
@@ -622,7 +856,15 @@ export const DisbursementRecords: React.FC = () => {
                         colSpan={8}
                         className="py-8 text-center text-xs text-muted-foreground"
                       >
-                        No employees match the filter.
+                        No employees match the selected criteria filters.
+                        <Button
+                          variant="link"
+                          size="xs"
+                          onClick={handleResetFilters}
+                          className="ml-2 text-primary underline"
+                        >
+                          Clear criteria filters
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ) : (

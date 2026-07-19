@@ -1,7 +1,7 @@
 import jsPDF from "jspdf-fontkit"
 import autoTable from "jspdf-autotable"
 import type { PayrollRow } from "./db"
-import type { WageSettings, JobCategory, Contract } from "./types"
+import type { WageSettings, Contract } from "./types"
 import { formatIndianRupees, daysToWords, formatDateKey } from "./payrollUtils"
 import { NOTO_SANS_MALAYALAM_BASE64 } from "./malayalamFont"
 
@@ -727,7 +727,10 @@ export function generateSettingsPreview(settings: WageSettings) {
   doc.line(margin, 46, pageWidth - margin, 46)
 
   // Table Data setup
-  const categories: JobCategory[] = ["Gardeners", "Drivers", "Cooks", "Helpers"]
+  const categories: string[] =
+    settings.categories && settings.categories.length > 0
+      ? settings.categories
+      : Object.keys(settings.wageRates || {})
   const tableData = categories.map((cat, index) => {
     const dailyWage = settings.wageRates[cat] || 0
     const otRate = settings.otRates?.[cat] ?? settings.otRate ?? 0

@@ -109,16 +109,33 @@ export function doIntervalsOverlap(
   return start1 <= end2 && end1 >= start2
 }
 
-export function getBillingCycleDates(year: number, month: number): Date[] {
+export function getBillingCycleDates(
+  year: number,
+  month: number,
+  startDay: number = 26,
+  endDay: number = 25
+): Date[] {
   // month is 1-indexed (1 to 12)
-  // Start date: 26th of month - 1
-  const startMonth = month === 1 ? 11 : month - 2 // JS month is 0-indexed
-  const startYear = month === 1 ? year - 1 : year
-  const startDate = new Date(startYear, startMonth, 26)
+  const endMonthIndex = month - 1 // JS month is 0-indexed
 
-  // End date: 25th of selected month
-  const endMonth = month - 1 // JS month is 0-indexed
-  const endDate = new Date(year, endMonth, 25)
+  let startDate: Date
+  let endDate: Date
+
+  if (startDay === 1 && (endDay >= 28 || endDay === 0 || endDay === 31)) {
+    // Standard full calendar month (1st to last day of selected month)
+    startDate = new Date(year, endMonthIndex, 1)
+    endDate = new Date(year, endMonthIndex + 1, 0)
+  } else if (startDay > endDay) {
+    // Cross-month cycle (e.g. 26th of previous month to 25th of current month)
+    const startMonthIndex = month === 1 ? 11 : month - 2
+    const startYear = month === 1 ? year - 1 : year
+    startDate = new Date(startYear, startMonthIndex, startDay)
+    endDate = new Date(year, endMonthIndex, endDay)
+  } else {
+    // Same-month cycle (e.g. 1st to 20th of current month)
+    startDate = new Date(year, endMonthIndex, startDay)
+    endDate = new Date(year, endMonthIndex, endDay)
+  }
 
   const dates: Date[] = []
   const current = new Date(startDate)
@@ -128,6 +145,7 @@ export function getBillingCycleDates(year: number, month: number): Date[] {
   }
   return dates
 }
+
 
 export function formatIndianRupees(amount: number): string {
   const fixedAmount = amount.toFixed(2)

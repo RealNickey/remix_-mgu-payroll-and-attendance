@@ -76,6 +76,7 @@ export interface PayrollRow {
 const MguDbContext = createContext<MguDbContextType | undefined>(undefined)
 
 const defaultSettings: WageSettings = {
+  categories: ["Gardeners", "Drivers", "Cooks", "Helpers"],
   wageRates: {
     Gardeners: 525,
     Drivers: 700,
@@ -93,6 +94,10 @@ const defaultSettings: WageSettings = {
     Drivers: 2000,
     Cooks: Number.POSITIVE_INFINITY,
     Helpers: Number.POSITIVE_INFINITY,
+  },
+  billingCycle: {
+    startDay: 26,
+    endDay: 25,
   },
   section: "Ad.B5",
 }
@@ -118,15 +123,34 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
       const storedSettings = localStorage.getItem("mgu_settings")
       if (storedSettings) {
         const parsed = JSON.parse(storedSettings)
+
+        // Derive active categories from parsed.categories or wageRates keys
+        const wageRateKeys = parsed.wageRates ? Object.keys(parsed.wageRates) : []
+        const categoriesSet = new Set<string>([
+          ...defaultSettings.categories!,
+          ...(parsed.categories || []),
+          ...wageRateKeys,
+        ])
+        const categories = Array.from(categoriesSet)
+
         const normalized: WageSettings = {
-          wageRates: parsed.wageRates || defaultSettings.wageRates,
-          otRates: parsed.otRates || {
-            Gardeners: 0,
-            Drivers: parsed.otRate !== undefined ? parsed.otRate : 100,
-            Cooks: parsed.otRate !== undefined ? parsed.otRate : 100,
-            Helpers: parsed.otRate !== undefined ? parsed.otRate : 100,
+          categories,
+          wageRates: {
+            ...defaultSettings.wageRates,
+            ...(parsed.wageRates || {}),
           },
-          otCeilings: parsed.otCeilings || defaultSettings.otCeilings,
+          otRates: {
+            ...defaultSettings.otRates,
+            ...(parsed.otRates || {}),
+          },
+          otCeilings: {
+            ...defaultSettings.otCeilings,
+            ...(parsed.otCeilings || {}),
+          },
+          billingCycle: {
+            startDay: parsed.billingCycle?.startDay ?? 26,
+            endDay: parsed.billingCycle?.endDay ?? 25,
+          },
           otRate: parsed.otRate,
           section: parsed.section || "Ad.B5",
         }
@@ -380,8 +404,9 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
 
   // Payroll Calculation
   const calculatePayroll = (year: number, month: number): PayrollRow[] => {
-    // 1. Cycle Start & End Strings
-    const dates = getBillingCycleDates(year, month)
+    const startDay = settings.billingCycle?.startDay ?? 26
+    const endDay = settings.billingCycle?.endDay ?? 25
+    const dates = getBillingCycleDates(year, month, startDay, endDay)
     if (dates.length === 0) return []
 
     const cycleStartDateStr = formatDateKey(dates[0])

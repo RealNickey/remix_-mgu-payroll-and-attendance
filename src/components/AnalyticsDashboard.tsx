@@ -102,8 +102,10 @@ export const AnalyticsDashboard: React.FC = () => {
 
   // Calculate dates of selected billing cycle
   const billingCycleDates = useMemo(() => {
-    return getBillingCycleDates(selectedYear, selectedMonth)
-  }, [selectedYear, selectedMonth])
+    const startDay = settings.billingCycle?.startDay ?? 26
+    const endDay = settings.billingCycle?.endDay ?? 25
+    return getBillingCycleDates(selectedYear, selectedMonth, startDay, endDay)
+  }, [selectedYear, selectedMonth, settings.billingCycle])
 
   const cycleDateRangeStr = useMemo(() => {
     if (billingCycleDates.length === 0) return ""
@@ -232,56 +234,61 @@ export const AnalyticsDashboard: React.FC = () => {
     return payrollData.reduce((sum, r) => sum + r.otDays, 0)
   }, [payrollData])
 
+  // Active Categories list
+  const activeCategories = useMemo(() => {
+    if (settings.categories && settings.categories.length > 0) {
+      return settings.categories
+    }
+    const catSet = new Set<string>(["Gardeners", "Drivers", "Cooks", "Helpers"])
+    employees.forEach((e) => catSet.add(e.category))
+    payrollData.forEach((r) => catSet.add(r.category))
+    return Array.from(catSet)
+  }, [settings.categories, employees, payrollData])
+
+  const getCategoryColor = (cat: string, index: number) => {
+    if (CATEGORY_COLORS[cat as JobCategory]) {
+      return CATEGORY_COLORS[cat as JobCategory]
+    }
+    const colors = [
+      "var(--chart-1)",
+      "var(--chart-2)",
+      "var(--chart-3)",
+      "var(--chart-4)",
+      "var(--chart-5)",
+    ]
+    return colors[index % colors.length]
+  }
+
   // Chart 1: Expenditure by Category
   const categoryPayrollData = useMemo(() => {
-    const categories: JobCategory[] = [
-      "Gardeners",
-      "Drivers",
-      "Cooks",
-      "Helpers",
-    ]
-    return categories.map((cat) => {
+    return activeCategories.map((cat, idx) => {
       const catRows = payrollData.filter((r) => r.category === cat)
       const total = catRows.reduce((sum, r) => sum + r.totalPay, 0)
       return {
         category: cat,
         amount: total,
-        fill: CATEGORY_COLORS[cat],
+        fill: getCategoryColor(cat, idx),
       }
     })
-  }, [payrollData])
+  }, [payrollData, activeCategories])
 
   // Chart 2: Workforce Composition (Pie)
   const categoryDistributionData = useMemo(() => {
-    const categories: JobCategory[] = [
-      "Gardeners",
-      "Drivers",
-      "Cooks",
-      "Helpers",
-    ]
-    const distribution = categories
-      .map((cat) => {
+    return activeCategories
+      .map((cat, idx) => {
         const count = employees.filter((e) => e.category === cat).length
         return {
           name: cat,
           value: count,
-          fill: CATEGORY_COLORS[cat],
+          fill: getCategoryColor(cat, idx),
         }
       })
       .filter((d) => d.value > 0)
-
-    return distribution
-  }, [employees])
+  }, [employees, activeCategories])
 
   // Chart 3: Category Performance Radar
   const radarData = useMemo(() => {
-    const categories: JobCategory[] = [
-      "Gardeners",
-      "Drivers",
-      "Cooks",
-      "Helpers",
-    ]
-    return categories.map((cat) => {
+    return activeCategories.map((cat) => {
       const catRows = payrollData.filter((r) => r.category === cat)
       const count = catRows.length
 

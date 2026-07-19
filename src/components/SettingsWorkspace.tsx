@@ -27,6 +27,9 @@ import {
   RiDownload2Line,
   RiUpload2Line,
   RiAlertLine,
+  RiAddLine,
+  RiCalendarEventLine,
+  RiBriefcaseLine,
 } from "@remixicon/react"
 import { toast } from "sonner"
 import { generateSettingsPreview } from "@/lib/pdfGenerator"
@@ -38,6 +41,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+
+const DEFAULT_CATEGORIES = ["Gardeners", "Drivers", "Cooks", "Helpers"]
 
 export const SettingsWorkspace = () => {
   const {
@@ -51,23 +57,26 @@ export const SettingsWorkspace = () => {
     saveAttendance,
   } = useMguDb()
 
-  // Draft states
-  const [gardenersRate, setGardenersRate] = useState<number | "">(525)
-  const [driversRate, setDriversRate] = useState<number | "">(700)
-  const [cooksRate, setCooksRate] = useState<number | "">(645)
-  const [helpersRate, setHelpersRate] = useState<number | "">(525)
+  // Category & Rate states
+  const [categoriesList, setCategoriesList] = useState<string[]>(DEFAULT_CATEGORIES)
+  const [wageRates, setWageRates] = useState<Record<string, number | "">>({})
+  const [otRates, setOtRates] = useState<Record<string, number | "">>({})
+  const [otCeilings, setOtCeilings] = useState<Record<string, number | "">>({})
 
-  const [selectedSection, setSelectedSection] = useState<"Ad.B5" | "Ad.B7" | "Estate 1" | "Estate 2">("Ad.B5")
+  // Section state
+  const [selectedSection, setSelectedSection] = useState<
+    "Ad.B5" | "Ad.B7" | "Estate 1" | "Estate 2"
+  >("Ad.B5")
 
-  const [gardenersOtRate, setGardenersOtRate] = useState<number | "">(0)
-  const [driversOtRate, setDriversOtRate] = useState<number | "">(100)
-  const [cooksOtRate, setCooksOtRate] = useState<number | "">(100)
-  const [helpersOtRate, setHelpersOtRate] = useState<number | "">(100)
+  // Billing Cycle states
+  const [cycleStartDay, setCycleStartDay] = useState<number | "">(26)
+  const [cycleEndDay, setCycleEndDay] = useState<number | "">(25)
 
-  const [gardenersOtCeiling, setGardenersOtCeiling] = useState<number | "">(0)
-  const [driversOtCeiling, setDriversOtCeiling] = useState<number | "">(2000)
-  const [cooksOtCeiling, setCooksOtCeiling] = useState<number | "">(0)
-  const [helpersOtCeiling, setHelpersOtCeiling] = useState<number | "">(0)
+  // New Category Creation state
+  const [newCatName, setNewCatName] = useState("")
+  const [newCatWage, setNewCatWage] = useState<number | "">(525)
+  const [newCatOtRate, setNewCatOtRate] = useState<number | "">(100)
+  const [newCatOtCeiling, setNewCatOtCeiling] = useState<number | "">(2000)
 
   // Import states
   const [importData, setImportData] = useState<any>(null)
@@ -79,25 +88,39 @@ export const SettingsWorkspace = () => {
     hasSettings: boolean
   } | null>(null)
 
-  // Initialize draft values when settings load
+  // Load settings into draft
   useEffect(() => {
     if (settings) {
-      setGardenersRate(settings.wageRates?.Gardeners ?? 525)
-      setDriversRate(settings.wageRates?.Drivers ?? 700)
-      setCooksRate(settings.wageRates?.Cooks ?? 645)
-      setHelpersRate(settings.wageRates?.Helpers ?? 525)
+      const cats =
+        settings.categories && settings.categories.length > 0
+          ? settings.categories
+          : DEFAULT_CATEGORIES
 
-      setGardenersOtRate(settings.otRates?.Gardeners ?? 0)
-      setDriversOtRate(settings.otRates?.Drivers ?? 100)
-      setCooksOtRate(settings.otRates?.Cooks ?? 100)
-      setHelpersOtRate(settings.otRates?.Helpers ?? 100)
+      setCategoriesList(cats)
 
-      setGardenersOtCeiling(settings.otCeilings?.Gardeners ?? 0)
-      setDriversOtCeiling(settings.otCeilings?.Drivers ?? 2000)
-      setCooksOtCeiling(settings.otCeilings?.Cooks ?? 0)
-      setHelpersOtCeiling(settings.otCeilings?.Helpers ?? 0)
+      const wMap: Record<string, number | ""> = {}
+      const oMap: Record<string, number | ""> = {}
+      const cMap: Record<string, number | ""> = {}
 
+      cats.forEach((cat) => {
+        wMap[cat] = settings.wageRates?.[cat] ?? (cat === "Drivers" ? 700 : cat === "Cooks" ? 645 : 525)
+        oMap[cat] = settings.otRates?.[cat] ?? (cat === "Gardeners" ? 0 : 100)
+        cMap[cat] =
+          settings.otCeilings?.[cat] ??
+          (cat === "Gardeners"
+            ? 0
+            : cat === "Drivers"
+              ? 2000
+              : Number.POSITIVE_INFINITY)
+      })
+
+      setWageRates(wMap)
+      setOtRates(oMap)
+      setOtCeilings(cMap)
       setSelectedSection(settings.section || "Ad.B5")
+
+      setCycleStartDay(settings.billingCycle?.startDay ?? 26)
+      setCycleEndDay(settings.billingCycle?.endDay ?? 25)
     }
   }, [settings])
 
@@ -116,24 +139,17 @@ export const SettingsWorkspace = () => {
       const isInput = tagName === "INPUT"
       const isSelectTrigger =
         activeElement.getAttribute("data-slot") === "select-trigger"
-      const isDatePicker =
-        tagName === "BUTTON" &&
-        activeElement.classList.contains("h-9") &&
-        activeElement.classList.contains("w-full") &&
-        activeElement.classList.contains("justify-start")
 
-      if (isInput || isSelectTrigger || isDatePicker) {
+      if (isInput || isSelectTrigger) {
         const isExpanded =
           activeElement.getAttribute("aria-expanded") === "true"
-        if (isExpanded) {
-          return
-        }
+        if (isExpanded) return
 
         e.preventDefault()
 
         const form = e.currentTarget
         const selector =
-          'input:not([disabled]):not([type="hidden"]), button[data-slot="select-trigger"]:not([disabled]), button.h-9.w-full.justify-start:not([disabled])'
+          'input:not([disabled]):not([type="hidden"]), button[data-slot="select-trigger"]:not([disabled])'
         const fields = Array.from(form.querySelectorAll<HTMLElement>(selector))
 
         const currentIndex = fields.indexOf(activeElement as HTMLElement)
@@ -146,34 +162,79 @@ export const SettingsWorkspace = () => {
           ) {
             nextField.select()
           }
-        } else if (currentIndex === fields.length - 1) {
-          form.requestSubmit()
         }
       }
     }
   }
 
+  // Create dynamic category
+  const handleAddCategory = () => {
+    const trimmed = newCatName.trim()
+    if (!trimmed) {
+      toast.error("Please enter a category name.")
+      return
+    }
+
+    if (categoriesList.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      toast.error(`Category "${trimmed}" already exists.`)
+      return
+    }
+
+    const updated = [...categoriesList, trimmed]
+    setCategoriesList(updated)
+    setWageRates((prev) => ({ ...prev, [trimmed]: Number(newCatWage) || 0 }))
+    setOtRates((prev) => ({ ...prev, [trimmed]: Number(newCatOtRate) || 0 }))
+    setOtCeilings((prev) => ({
+      ...prev,
+      [trimmed]: Number(newCatOtCeiling) || 0,
+    }))
+
+    setNewCatName("")
+    setNewCatWage(525)
+    setNewCatOtRate(100)
+    setNewCatOtCeiling(2000)
+
+    toast.success(`Category "${trimmed}" added! Click "Save Changes" to persist.`)
+  }
+
+  // Delete dynamic category
+  const handleDeleteCategory = (catToDelete: string) => {
+    const inUse = employees.filter((e) => e.category === catToDelete).length
+    if (inUse > 0) {
+      toast.error(
+        `Cannot remove "${catToDelete}" because ${inUse} employee(s) are currently assigned to this category.`
+      )
+      return
+    }
+
+    setCategoriesList((prev) => prev.filter((c) => c !== catToDelete))
+    toast.success(`Category "${catToDelete}" removed from draft list.`)
+  }
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
 
+    const finalWageRates: Record<string, number> = {}
+    const finalOtRates: Record<string, number> = {}
+    const finalOtCeilings: Record<string, number> = {}
+
+    categoriesList.forEach((cat) => {
+      finalWageRates[cat] = Number(wageRates[cat]) || 0
+      finalOtRates[cat] = Number(otRates[cat]) || 0
+      finalOtCeilings[cat] = Number(otCeilings[cat]) || 0
+    })
+
+    const start = Math.min(Math.max(Number(cycleStartDay) || 1, 1), 31)
+    const end = Math.min(Math.max(Number(cycleEndDay) || 1, 1), 31)
+
     const updatedSettings: WageSettings = {
-      wageRates: {
-        Gardeners: Number(gardenersRate) || 0,
-        Drivers: Number(driversRate) || 0,
-        Cooks: Number(cooksRate) || 0,
-        Helpers: Number(helpersRate) || 0,
-      },
-      otRates: {
-        Gardeners: Number(gardenersOtRate) || 0,
-        Drivers: Number(driversOtRate) || 0,
-        Cooks: Number(cooksOtRate) || 0,
-        Helpers: Number(helpersOtRate) || 0,
-      },
-      otCeilings: {
-        Gardeners: Number(gardenersOtCeiling) || 0,
-        Drivers: Number(driversOtCeiling) || 0,
-        Cooks: Number(cooksOtCeiling) || 0,
-        Helpers: Number(helpersOtCeiling) || 0,
+      categories: categoriesList,
+      wageRates: finalWageRates,
+      otRates: finalOtRates,
+      otCeilings: finalOtCeilings,
+      billingCycle: {
+        startDay: start,
+        endDay: end,
       },
       section: selectedSection,
     }
@@ -181,7 +242,7 @@ export const SettingsWorkspace = () => {
     const previousSettings = { ...settings }
     saveSettings(updatedSettings)
     toast.success(
-      "Settings updated successfully. All payroll summaries have been updated.",
+      "Settings updated successfully. All payroll summaries and billing cycles have been updated.",
       {
         action: {
           label: "Undo",
@@ -192,24 +253,24 @@ export const SettingsWorkspace = () => {
   }
 
   const handlePdfPreview = () => {
+    const finalWageRates: Record<string, number> = {}
+    const finalOtRates: Record<string, number> = {}
+    const finalOtCeilings: Record<string, number> = {}
+
+    categoriesList.forEach((cat) => {
+      finalWageRates[cat] = Number(wageRates[cat]) || 0
+      finalOtRates[cat] = Number(otRates[cat]) || 0
+      finalOtCeilings[cat] = Number(otCeilings[cat]) || 0
+    })
+
     const previewSettings: WageSettings = {
-      wageRates: {
-        Gardeners: Number(gardenersRate) || 0,
-        Drivers: Number(driversRate) || 0,
-        Cooks: Number(cooksRate) || 0,
-        Helpers: Number(helpersRate) || 0,
-      },
-      otRates: {
-        Gardeners: Number(gardenersOtRate) || 0,
-        Drivers: Number(driversOtRate) || 0,
-        Cooks: Number(cooksOtRate) || 0,
-        Helpers: Number(helpersOtRate) || 0,
-      },
-      otCeilings: {
-        Gardeners: Number(gardenersOtCeiling) || 0,
-        Drivers: Number(driversOtCeiling) || 0,
-        Cooks: Number(cooksOtCeiling) || 0,
-        Helpers: Number(helpersOtCeiling) || 0,
+      categories: categoriesList,
+      wageRates: finalWageRates,
+      otRates: finalOtRates,
+      otCeilings: finalOtCeilings,
+      billingCycle: {
+        startDay: Number(cycleStartDay) || 26,
+        endDay: Number(cycleEndDay) || 25,
       },
       section: selectedSection,
     }
@@ -253,13 +314,10 @@ export const SettingsWorkspace = () => {
     reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string)
-
-        // Validation
         if (!json || typeof json !== "object") {
           throw new Error("Invalid JSON file structure.")
         }
 
-        // Let's do basic validation
         const hasEmployees = Array.isArray(json.employees)
         const hasContracts = Array.isArray(json.contracts)
         const hasAttendance =
@@ -272,75 +330,17 @@ export const SettingsWorkspace = () => {
           )
         }
 
-        let employeeCount = 0
-        let contractCount = 0
-        let attendanceCount = 0
-        let containsSettings = false
-
-        if (json.employees) {
-          if (!Array.isArray(json.employees))
-            throw new Error("Employees key must be an array")
-          for (const emp of json.employees) {
-            if (
-              typeof emp !== "object" ||
-              !emp.id ||
-              !emp.name ||
-              !emp.category
-            ) {
-              throw new Error(
-                "Each employee record must be valid and contain an id, name, and category."
-              )
-            }
-          }
-          employeeCount = json.employees.length
-        }
-
-        if (json.contracts) {
-          if (!Array.isArray(json.contracts))
-            throw new Error("Contracts key must be an array")
-          for (const ctr of json.contracts) {
-            if (
-              typeof ctr !== "object" ||
-              !ctr.id ||
-              !ctr.employeeId ||
-              !ctr.startDate ||
-              !ctr.endDate
-            ) {
-              throw new Error(
-                "Each contract record must be valid and contain an id, employeeId, startDate, and endDate."
-              )
-            }
-          }
-          contractCount = json.contracts.length
-        }
-
-        if (json.attendance) {
-          if (
-            typeof json.attendance !== "object" ||
-            Array.isArray(json.attendance)
-          )
-            throw new Error("Attendance key must be an object")
-          for (const empId in json.attendance) {
-            const records = json.attendance[empId]
-            if (typeof records !== "object" || Array.isArray(records))
-              throw new Error("Attendance records must be objects")
-            attendanceCount += Object.keys(records).length
-          }
-        }
-
-        if (json.settings) {
-          if (typeof json.settings !== "object")
-            throw new Error("Settings key must be an object")
-          containsSettings = true
-        }
-
         setImportPreview({
-          employeeCount,
-          contractCount,
-          attendanceCount,
-          hasSettings: containsSettings,
+          employeeCount: hasEmployees ? json.employees.length : 0,
+          contractCount: hasContracts ? json.contracts.length : 0,
+          attendanceCount: hasAttendance
+            ? Object.values(json.attendance).reduce(
+                (sum: number, r: any) => sum + Object.keys(r || {}).length,
+                0
+              )
+            : 0,
+          hasSettings,
         })
-        importData // make eslint happy if it needs to see read
         setImportData(json)
       } catch (err: any) {
         toast.error(`Invalid backup file: ${err.message || err}`)
@@ -355,24 +355,13 @@ export const SettingsWorkspace = () => {
 
   const handleConfirmImport = () => {
     if (!importData) return
-
     try {
-      if (importData.employees) {
-        saveEmployees(importData.employees)
-      }
-      if (importData.contracts) {
-        saveContracts(importData.contracts)
-      }
-      if (importData.attendance) {
-        saveAttendance(importData.attendance)
-      }
-      if (importData.settings) {
-        saveSettings(importData.settings)
-      }
+      if (importData.employees) saveEmployees(importData.employees)
+      if (importData.contracts) saveContracts(importData.contracts)
+      if (importData.attendance) saveAttendance(importData.attendance)
+      if (importData.settings) saveSettings(importData.settings)
 
-      toast.success(
-        "Database imported successfully. All tables and settings have been restored."
-      )
+      toast.success("Database imported successfully.")
       setImportData(null)
       setImportPreview(null)
       setImportFileName("")
@@ -381,72 +370,240 @@ export const SettingsWorkspace = () => {
     }
   }
 
-  const handleCancelImport = () => {
-    setImportData(null)
-    setImportPreview(null)
-    setImportFileName("")
-  }
-
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      {/* Information Banner */}
+    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+      {/* Policy Notice */}
       <Alert className="border-primary/20 bg-primary/5 text-foreground">
         <RiInformationLine className="size-5 text-primary" />
         <AlertTitle className="font-heading text-sm font-bold">
-          Policy Calculations Notice
+          Policy & System Configuration Notice
         </AlertTitle>
         <AlertDescription className="mt-1 text-xs">
-          Modifying these rates will immediately re-compute payroll totals for
-          all billing cycles. Overtime charges and monthly ceilings are
-          configured per employee category below.
+          Configuring job categories, billing cycle dates, and daily base/OT rates
+          will immediately recompute payroll calculations for all active and
+          historical billing cycles across the portal.
         </AlertDescription>
       </Alert>
 
-      {/* Wage rates Form */}
+      {/* Main Settings Form */}
       <Card className="border-border/60 bg-card/50 backdrop-blur-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 font-heading text-lg font-bold">
             <RiSettings4Line className="size-5 text-primary" />
-            Wage Configuration Settings
+            Wage & Billing System Settings
           </CardTitle>
           <CardDescription>
-            Configure daily base wages and overtime rates for contractual staff.
+            Configure office section, billing cycle dates, job categories, and wage policies.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSave} onKeyDown={handleFormKeyDown}>
           <CardContent className="flex flex-col gap-6">
-            {/* Section Selection */}
-            <div className="rounded-lg border border-border/40 bg-muted/20 p-4 animate-in duration-250 fade-in-50">
-              <h4 className="mb-3 font-heading text-xs font-bold tracking-wider text-primary uppercase">
-                Office Section Designation
-              </h4>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="section-select">
-                    Active Office Section
-                  </FieldLabel>
-                  <Select
-                    value={selectedSection}
-                    onValueChange={(val) =>
-                      setSelectedSection(val as "Ad.B5" | "Ad.B7" | "Estate 1" | "Estate 2")
-                    }
-                  >
-                    <SelectTrigger id="section-select" className="w-full">
-                      <SelectValue placeholder="Select section" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value="Ad.B5">Ad.B5</SelectItem>
-                        <SelectItem value="Ad.B7">Ad.B7</SelectItem>
-                        <SelectItem value="Estate 1">Estate 1</SelectItem>
-                        <SelectItem value="Estate 2">Estate 2</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </FieldGroup>
+            {/* Section Selection & Billing Cycle Grid */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {/* Office Section Designation */}
+              <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
+                <h4 className="mb-3 font-heading text-xs font-bold tracking-wider text-primary uppercase">
+                  Office Section Designation
+                </h4>
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="section-select">
+                      Active Office Section
+                    </FieldLabel>
+                    <Select
+                      value={selectedSection}
+                      onValueChange={(val) =>
+                        setSelectedSection(
+                          val as "Ad.B5" | "Ad.B7" | "Estate 1" | "Estate 2"
+                        )
+                      }
+                    >
+                      <SelectTrigger id="section-select" className="w-full">
+                        <SelectValue placeholder="Select section" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="Ad.B5">Ad.B5</SelectItem>
+                          <SelectItem value="Ad.B7">Ad.B7</SelectItem>
+                          <SelectItem value="Estate 1">Estate 1</SelectItem>
+                          <SelectItem value="Estate 2">Estate 2</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </FieldGroup>
+              </div>
+
+              {/* Billing Cycle Dates Provision */}
+              <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <h4 className="flex items-center gap-1.5 font-heading text-xs font-bold tracking-wider text-primary uppercase">
+                    <RiCalendarEventLine className="size-4" />
+                    Billing Cycle Dates
+                  </h4>
+                  <div className="flex gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      className="h-6 px-1.5 text-[10px]"
+                      onClick={() => {
+                        setCycleStartDay(26)
+                        setCycleEndDay(25)
+                      }}
+                      title="Set Standard 26th-25th Cycle"
+                    >
+                      MGU (26–25)
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      className="h-6 px-1.5 text-[10px]"
+                      onClick={() => {
+                        setCycleStartDay(1)
+                        setCycleEndDay(31)
+                      }}
+                      title="Set Full Month Cycle (1st–31st)"
+                    >
+                      Month (1–31)
+                    </Button>
+                  </div>
+                </div>
+
+                <FieldGroup>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field>
+                      <FieldLabel htmlFor="cycle-start-day" className="text-xs">
+                        Cycle Start Day
+                      </FieldLabel>
+                      <Input
+                        id="cycle-start-day"
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={cycleStartDay}
+                        onChange={(e) =>
+                          setCycleStartDay(
+                            e.target.value === "" ? "" : Number(e.target.value)
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="cycle-end-day" className="text-xs">
+                        Cycle End Day
+                      </FieldLabel>
+                      <Input
+                        id="cycle-end-day"
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={cycleEndDay}
+                        onChange={(e) =>
+                          setCycleEndDay(
+                            e.target.value === "" ? "" : Number(e.target.value)
+                          )
+                        }
+                      />
+                    </Field>
+                  </div>
+                </FieldGroup>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Current rule:{" "}
+                  <span className="font-semibold text-foreground">
+                    {Number(cycleStartDay) > Number(cycleEndDay)
+                      ? `${cycleStartDay}th of prev month to ${cycleEndDay}th of current month`
+                      : `${cycleStartDay}st to ${cycleEndDay}th of current month`}
+                  </span>
+                </p>
+              </div>
             </div>
 
+            {/* Create Additional Job Categories Provision */}
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <h4 className="mb-2 flex items-center gap-1.5 font-heading text-xs font-bold tracking-wider text-primary uppercase">
+                <RiBriefcaseLine className="size-4" />
+                Create Additional Job Category
+              </h4>
+              <p className="mb-4 text-xs text-muted-foreground">
+                Introduce custom job roles into the system with specific base wages, overtime rates, and monthly ceilings.
+              </p>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                <Field className="sm:col-span-1">
+                  <FieldLabel htmlFor="newCatName" className="text-xs">
+                    Category Name
+                  </FieldLabel>
+                  <Input
+                    id="newCatName"
+                    placeholder="e.g. Security"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                  />
+                </Field>
+                <Field className="sm:col-span-1">
+                  <FieldLabel htmlFor="newCatWage" className="text-xs">
+                    Base Wage (₹)
+                  </FieldLabel>
+                  <Input
+                    id="newCatWage"
+                    type="number"
+                    value={newCatWage}
+                    onChange={(e) =>
+                      setNewCatWage(
+                        e.target.value === "" ? "" : Number(e.target.value)
+                      )
+                    }
+                  />
+                </Field>
+                <Field className="sm:col-span-1">
+                  <FieldLabel htmlFor="newCatOtRate" className="text-xs">
+                    OT Rate (₹/Day)
+                  </FieldLabel>
+                  <Input
+                    id="newCatOtRate"
+                    type="number"
+                    value={newCatOtRate}
+                    onChange={(e) =>
+                      setNewCatOtRate(
+                        e.target.value === "" ? "" : Number(e.target.value)
+                      )
+                    }
+                  />
+                </Field>
+                <Field className="sm:col-span-1">
+                  <FieldLabel htmlFor="newCatOtCeiling" className="text-xs">
+                    OT Ceiling (₹)
+                  </FieldLabel>
+                  <Input
+                    id="newCatOtCeiling"
+                    type="number"
+                    value={newCatOtCeiling}
+                    onChange={(e) =>
+                      setNewCatOtCeiling(
+                        e.target.value === "" ? "" : Number(e.target.value)
+                      )
+                    }
+                  />
+                </Field>
+              </div>
+
+              <div className="mt-3 flex justify-end">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleAddCategory}
+                  className="cursor-pointer"
+                >
+                  <RiAddLine className="mr-1 size-4" />
+                  Add Category
+                </Button>
+              </div>
+            </div>
+
+            {/* Accordion for Category Rates */}
             <Accordion
               defaultValue={["base-wages", "ot-rates"]}
               className="w-full"
@@ -456,80 +613,48 @@ export const SettingsWorkspace = () => {
                 className="border-b border-border/50"
               >
                 <AccordionTrigger className="py-3 font-heading text-xs font-bold tracking-wider text-muted-foreground uppercase hover:no-underline">
-                  Daily Base Wage Rates (in Rupees)
+                  Daily Base Wage Rates by Category (in ₹)
                 </AccordionTrigger>
                 <AccordionContent className="pt-2 pb-4">
                   <FieldGroup>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <Field>
-                        <FieldLabel htmlFor="gardeners">
-                          Gardeners Rate (₹)
-                        </FieldLabel>
-                        <Input
-                          id="gardeners"
-                          type="number"
-                          value={gardenersRate}
-                          onChange={(e) =>
-                            setGardenersRate(
-                              e.target.value === ""
-                                ? ""
-                                : Number(e.target.value)
-                            )
-                          }
-                        />
-                      </Field>
-
-                      <Field>
-                        <FieldLabel htmlFor="drivers">
-                          Drivers Rate (₹)
-                        </FieldLabel>
-                        <Input
-                          id="drivers"
-                          type="number"
-                          value={driversRate}
-                          onChange={(e) =>
-                            setDriversRate(
-                              e.target.value === ""
-                                ? ""
-                                : Number(e.target.value)
-                            )
-                          }
-                        />
-                      </Field>
-
-                      <Field>
-                        <FieldLabel htmlFor="cooks">Cooks Rate (₹)</FieldLabel>
-                        <Input
-                          id="cooks"
-                          type="number"
-                          value={cooksRate}
-                          onChange={(e) =>
-                            setCooksRate(
-                              e.target.value === ""
-                                ? ""
-                                : Number(e.target.value)
-                            )
-                          }
-                        />
-                      </Field>
-
-                      <Field>
-                        <FieldLabel htmlFor="helpers">
-                          Helpers Rate (₹)
-                        </FieldLabel>
-                        <Input
-                          id="helpers"
-                          type="number"
-                          value={helpersRate}
-                          onChange={(e) =>
-                            setHelpersRate(
-                              e.target.value === ""
-                                ? ""
-                                : Number(e.target.value)
-                            )
-                          }
-                        />
-                      </Field>
+                      {categoriesList.map((cat) => {
+                        const isCustom = !DEFAULT_CATEGORIES.includes(cat)
+                        return (
+                          <Field key={cat}>
+                            <div className="flex items-center justify-between">
+                              <FieldLabel htmlFor={`wage-${cat}`}>
+                                {cat} Rate (₹)
+                              </FieldLabel>
+                              {isCustom && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCategory(cat)}
+                                  className="text-xs text-rose-500 hover:underline"
+                                  title={`Delete custom category ${cat}`}
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+                            <Input
+                              id={`wage-${cat}`}
+                              type="number"
+                              value={wageRates[cat] ?? ""}
+                              onChange={(e) => {
+                                const val =
+                                  e.target.value === ""
+                                    ? ""
+                                    : Number(e.target.value)
+                                setWageRates((prev) => ({
+                                  ...prev,
+                                  [cat]: val,
+                                }))
+                              }}
+                            />
+                          </Field>
+                        )
+                      })}
                     </div>
                   </FieldGroup>
                 </AccordionContent>
@@ -540,186 +665,73 @@ export const SettingsWorkspace = () => {
                   Overtime & Monthly Ceiling Configuration
                 </AccordionTrigger>
                 <AccordionContent className="pt-2 pb-4">
-                  <div className="flex flex-col gap-6">
-                    {/* Gardeners */}
-                    <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
-                      <h4 className="mb-3 font-heading text-xs font-bold tracking-wider text-primary uppercase">
-                        Gardeners
-                      </h4>
-                      <FieldGroup>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          <Field>
-                            <FieldLabel htmlFor="gardenersOtRate">
-                              Overtime Rate (₹ / Day)
-                            </FieldLabel>
-                            <Input
-                              id="gardenersOtRate"
-                              type="number"
-                              value={gardenersOtRate}
-                              onChange={(e) =>
-                                setGardenersOtRate(
-                                  e.target.value === ""
-                                    ? ""
-                                    : Number(e.target.value)
-                                )
-                              }
-                            />
-                          </Field>
-                          <Field>
-                            <FieldLabel htmlFor="gardenersOtCeiling">
-                              Monthly Ceiling (₹)
-                            </FieldLabel>
-                            <Input
-                              id="gardenersOtCeiling"
-                              type="number"
-                              value={gardenersOtCeiling}
-                              onChange={(e) =>
-                                setGardenersOtCeiling(
-                                  e.target.value === ""
-                                    ? ""
-                                    : Number(e.target.value)
-                                )
-                              }
-                            />
-                          </Field>
+                  <div className="flex flex-col gap-4">
+                    {categoriesList.map((cat) => (
+                      <div
+                        key={`ot-box-${cat}`}
+                        className="rounded-lg border border-border/40 bg-muted/20 p-4"
+                      >
+                        <div className="mb-3 flex items-center justify-between">
+                          <h4 className="font-heading text-xs font-bold tracking-wider text-primary uppercase">
+                            {cat}
+                          </h4>
+                          {!DEFAULT_CATEGORIES.includes(cat) && (
+                            <Badge variant="outline" className="text-[10px]">
+                              Custom Role
+                            </Badge>
+                          )}
                         </div>
-                      </FieldGroup>
-                    </div>
-
-                    {/* Drivers */}
-                    <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
-                      <h4 className="mb-3 font-heading text-xs font-bold tracking-wider text-primary uppercase">
-                        Drivers
-                      </h4>
-                      <FieldGroup>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          <Field>
-                            <FieldLabel htmlFor="driversOtRate">
-                              Overtime Rate (₹ / Day)
-                            </FieldLabel>
-                            <Input
-                              id="driversOtRate"
-                              type="number"
-                              value={driversOtRate}
-                              onChange={(e) =>
-                                setDriversOtRate(
-                                  e.target.value === ""
+                        <FieldGroup>
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <Field>
+                              <FieldLabel htmlFor={`otRate-${cat}`}>
+                                Overtime Rate (₹ / Day)
+                              </FieldLabel>
+                              <Input
+                                id={`otRate-${cat}`}
+                                type="number"
+                                value={otRates[cat] ?? ""}
+                                onChange={(e) => {
+                                  const val =
+                                    e.target.value === ""
+                                      ? ""
+                                      : Number(e.target.value)
+                                  setOtRates((prev) => ({
+                                    ...prev,
+                                    [cat]: val,
+                                  }))
+                                }}
+                              />
+                            </Field>
+                            <Field>
+                              <FieldLabel htmlFor={`otCeiling-${cat}`}>
+                                Monthly Ceiling (₹)
+                              </FieldLabel>
+                              <Input
+                                id={`otCeiling-${cat}`}
+                                type="number"
+                                placeholder="e.g. 2000 (0 for none/uncapped)"
+                                value={
+                                  otCeilings[cat] === Number.POSITIVE_INFINITY
                                     ? ""
-                                    : Number(e.target.value)
-                                )
-                              }
-                            />
-                          </Field>
-                          <Field>
-                            <FieldLabel htmlFor="driversOtCeiling">
-                              Monthly Ceiling (₹)
-                            </FieldLabel>
-                            <Input
-                              id="driversOtCeiling"
-                              type="number"
-                              value={driversOtCeiling}
-                              onChange={(e) =>
-                                setDriversOtCeiling(
-                                  e.target.value === ""
-                                    ? ""
-                                    : Number(e.target.value)
-                                )
-                              }
-                            />
-                          </Field>
-                        </div>
-                      </FieldGroup>
-                    </div>
-
-                    {/* Cooks */}
-                    <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
-                      <h4 className="mb-3 font-heading text-xs font-bold tracking-wider text-primary uppercase">
-                        Cooks
-                      </h4>
-                      <FieldGroup>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          <Field>
-                            <FieldLabel htmlFor="cooksOtRate">
-                              Overtime Rate (₹ / Day)
-                            </FieldLabel>
-                            <Input
-                              id="cooksOtRate"
-                              type="number"
-                              value={cooksOtRate}
-                              onChange={(e) =>
-                                setCooksOtRate(
-                                  e.target.value === ""
-                                    ? ""
-                                    : Number(e.target.value)
-                                )
-                              }
-                            />
-                          </Field>
-                          <Field>
-                            <FieldLabel htmlFor="cooksOtCeiling">
-                              Monthly Ceiling (₹)
-                            </FieldLabel>
-                            <Input
-                              id="cooksOtCeiling"
-                              type="number"
-                              value={cooksOtCeiling}
-                              onChange={(e) =>
-                                setCooksOtCeiling(
-                                  e.target.value === ""
-                                    ? ""
-                                    : Number(e.target.value)
-                                )
-                              }
-                            />
-                          </Field>
-                        </div>
-                      </FieldGroup>
-                    </div>
-
-                    {/* Helpers */}
-                    <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
-                      <h4 className="mb-3 font-heading text-xs font-bold tracking-wider text-primary uppercase">
-                        Helpers
-                      </h4>
-                      <FieldGroup>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          <Field>
-                            <FieldLabel htmlFor="helpersOtRate">
-                              Overtime Rate (₹ / Day)
-                            </FieldLabel>
-                            <Input
-                              id="helpersOtRate"
-                              type="number"
-                              value={helpersOtRate}
-                              onChange={(e) =>
-                                setHelpersOtRate(
-                                  e.target.value === ""
-                                    ? ""
-                                    : Number(e.target.value)
-                                )
-                              }
-                            />
-                          </Field>
-                          <Field>
-                            <FieldLabel htmlFor="helpersOtCeiling">
-                              Monthly Ceiling (₹)
-                            </FieldLabel>
-                            <Input
-                              id="helpersOtCeiling"
-                              type="number"
-                              value={helpersOtCeiling}
-                              onChange={(e) =>
-                                setHelpersOtCeiling(
-                                  e.target.value === ""
-                                    ? ""
-                                    : Number(e.target.value)
-                                )
-                              }
-                            />
-                          </Field>
-                        </div>
-                      </FieldGroup>
-                    </div>
+                                    : (otCeilings[cat] ?? "")
+                                }
+                                onChange={(e) => {
+                                  const val =
+                                    e.target.value === ""
+                                      ? ""
+                                      : Number(e.target.value)
+                                  setOtCeilings((prev) => ({
+                                    ...prev,
+                                    [cat]: val,
+                                  }))
+                                }}
+                              />
+                            </Field>
+                          </div>
+                        </FieldGroup>
+                      </div>
+                    ))}
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -775,8 +787,7 @@ export const SettingsWorkspace = () => {
                 Restore Database
               </h4>
               <p className="text-xs text-muted-foreground">
-                Upload a previously exported JSON file to restore the entire
-                portal data. This will overwrite the current database.
+                Upload a previously exported JSON file to restore portal data.
               </p>
               <div className="relative">
                 <input
@@ -786,7 +797,6 @@ export const SettingsWorkspace = () => {
                   className="hidden"
                   onChange={handleFileChange}
                   onClick={(e) => {
-                    // Reset input value on click so onChange triggers even if same file selected
                     ;(e.target as HTMLInputElement).value = ""
                   }}
                 />
@@ -804,7 +814,7 @@ export const SettingsWorkspace = () => {
             </div>
           </div>
 
-          {/* Import Preview and confirmation */}
+          {/* Import Preview */}
           {importPreview && (
             <div className="animate-in rounded-lg border border-border/80 bg-muted/40 p-4 duration-200 fade-in-50">
               <div className="mb-3 flex items-center justify-between border-b border-border/50 pb-2">
@@ -857,9 +867,7 @@ export const SettingsWorkspace = () => {
                   Caution: Destructive Action
                 </AlertTitle>
                 <AlertDescription className="text-xs">
-                  Confirming this restore will delete all current database
-                  entries and replace them with the data from the backup file.
-                  This cannot be undone.
+                  Confirming this restore will delete current database entries and replace them with data from the backup file.
                 </AlertDescription>
               </Alert>
 
@@ -867,7 +875,11 @@ export const SettingsWorkspace = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleCancelImport}
+                  onClick={() => {
+                    setImportData(null)
+                    setImportPreview(null)
+                    setImportFileName("")
+                  }}
                 >
                   Cancel
                 </Button>
