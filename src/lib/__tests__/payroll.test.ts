@@ -2,8 +2,6 @@ import { describe, it, expect } from "vitest"
 import {
   computeEndDate,
   formatDateKey,
-  getContractStatus,
-  isDateCoveredByContract,
   doIntervalsOverlap,
   getBillingCycleDates,
   formatIndianRupees,
