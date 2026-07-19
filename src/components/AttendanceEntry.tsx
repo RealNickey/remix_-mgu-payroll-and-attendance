@@ -51,6 +51,10 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox"
 
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { PdfViewer } from "@/components/ui/pdf-viewer"
+import { generateMonthlyAttendanceSheet } from "@/lib/pdfGenerator"
+
 // Icons
 import {
   RiCalendarEventLine,
@@ -65,6 +69,8 @@ import {
   RiSunLine,
   RiArrowRightLine,
   RiInformationLine,
+  RiEyeLine,
+  RiFilePaper2Line,
 } from "@remixicon/react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -113,6 +119,7 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
     batchClearAll,
     saveAttendance,
     settings,
+    calculatePayroll,
   } = useMguDb()
 
   const currentYear = new Date().getFullYear()
@@ -121,6 +128,11 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("")
   const [openPopoverId, setOpenPopoverId] = useState<string | null>(null)
+  const [previewPdf, setPreviewPdf] = useState<{
+    url: string
+    filename: string
+    title: string
+  } | null>(null)
 
   const years = [currentYear - 1, currentYear, currentYear + 1]
 
@@ -330,6 +342,64 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
       "bg-muted text-muted-foreground")
     : ""
 
+  const payrollData = useMemo(
+    () => calculatePayroll(selectedYear, selectedMonth),
+    [calculatePayroll, selectedYear, selectedMonth]
+  )
+
+  const handleDownloadMonthlyGridSheet = () => {
+    if (payrollData.length === 0) {
+      toast.error("No payroll or attendance data available for this cycle.")
+      return
+    }
+    try {
+      generateMonthlyAttendanceSheet(
+        payrollData,
+        attendance,
+        contracts,
+        billingCycleDates,
+        selectedMonthLabel,
+        selectedYear,
+        selectedEmployee?.category || "drivers",
+        settings.section
+      )
+      toast.success("Monthly grid attendance sheet downloaded.")
+    } catch (e) {
+      console.error(e)
+      toast.error("Failed to generate monthly grid attendance sheet PDF.")
+    }
+  }
+
+  const handlePreviewMonthlyGridSheet = () => {
+    if (payrollData.length === 0) {
+      toast.error("No payroll or attendance data available for this cycle.")
+      return
+    }
+    try {
+      const result = generateMonthlyAttendanceSheet(
+        payrollData,
+        attendance,
+        contracts,
+        billingCycleDates,
+        selectedMonthLabel,
+        selectedYear,
+        selectedEmployee?.category || "drivers",
+        settings.section,
+        true
+      )
+      if (result) {
+        setPreviewPdf({
+          url: result.url,
+          filename: result.filename,
+          title: `Monthly Grid Attendance Sheet — ${selectedMonthLabel} ${selectedYear}`,
+        })
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error("Failed to preview monthly grid attendance sheet PDF.")
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────────────────────────
@@ -435,26 +505,49 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
           )}
         </div>
 
-        {/* Cycle date range info */}
-        {billingCycleDates.length > 0 && (
-          <div className="flex items-center gap-1.5 rounded-full border border-border/50 bg-muted/60 px-3 py-1.5 font-mono text-[11px] text-muted-foreground">
-            <RiCalendarLine className="size-3.5 shrink-0" />
-            <span>
-              {new Date(cycleStartDateStr).toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-              })}
-              &nbsp;→&nbsp;
-              {new Date(cycleEndDateStr).toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })}
-            </span>
-            <Separator orientation="vertical" className="mx-0.5 h-3" />
-            <span className="font-semibold">{billingCycleDates.length}d</span>
+        {/* Cycle date range info & PDF export buttons */}
+        <div className="flex items-center gap-2">
+          {billingCycleDates.length > 0 && (
+            <div className="flex items-center gap-1.5 rounded-full border border-border/50 bg-muted/60 px-3 py-1.5 font-mono text-[11px] text-muted-foreground">
+              <RiCalendarLine className="size-3.5 shrink-0" />
+              <span>
+                {new Date(cycleStartDateStr).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                })}
+                &nbsp;→&nbsp;
+                {new Date(cycleEndDateStr).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+              <Separator orientation="vertical" className="mx-0.5 h-3" />
+              <span className="font-semibold">{billingCycleDates.length}d</span>
+            </div>
+          )}
+
+          <div className="inline-flex rounded-lg shadow-sm">
+            <Button
+              onClick={handleDownloadMonthlyGridSheet}
+              size="sm"
+              variant="outline"
+              className="h-8 cursor-pointer rounded-r-none border-r-0 text-xs font-semibold"
+            >
+              <RiFilePaper2Line className="mr-1.5 size-3.5" />
+              Grid PDF
+            </Button>
+            <Button
+              onClick={handlePreviewMonthlyGridSheet}
+              size="sm"
+              variant="outline"
+              className="h-8 cursor-pointer rounded-l-none border-l-border px-2 text-xs"
+              title="Preview Monthly Grid Sheet PDF"
+            >
+              <RiEyeLine className="size-3.5" />
+            </Button>
           </div>
-        )}
+        </div>
       </div>
 
       {/* ── Empty state: no employees ──────────────────────────────────────────── */}
@@ -1121,6 +1214,38 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
           </div>
         </div>
       )}
+
+      {/* PDF Preview Dialog */}
+      <Dialog
+        open={!!previewPdf}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (previewPdf) URL.revokeObjectURL(previewPdf.url)
+            setPreviewPdf(null)
+          }
+        }}
+      >
+        <DialogContent className="flex h-[88vh] w-full max-w-[95vw] flex-col overflow-hidden p-0 sm:max-w-[85vw] sm:rounded-xl">
+          {previewPdf && (
+            <PdfViewer
+              file={previewPdf.url}
+              mode="scroll"
+              className="h-full w-full rounded-none border-none"
+              onDownload={() => {
+                const a = document.createElement("a")
+                a.href = previewPdf.url
+                a.download = previewPdf.filename
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+                toast.success("Downloaded", {
+                  description: `${previewPdf.title} has been downloaded.`,
+                })
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

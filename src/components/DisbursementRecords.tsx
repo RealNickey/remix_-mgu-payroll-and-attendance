@@ -9,6 +9,7 @@ import {
   generateSummaryReport,
   generateAttendanceReport,
   generateEmployeeReceipt,
+  generateMonthlyAttendanceSheet,
 } from "@/lib/pdfGenerator"
 import {
   Card,
@@ -235,6 +236,53 @@ export const DisbursementRecords: React.FC = () => {
     } catch (e) {
       console.error(e)
       toast.error("Failed to preview PDF attendance report.")
+    }
+  }
+
+  const handleDownloadMonthlyGridSheet = () => {
+    if (payrollData.length === 0) return
+    try {
+      generateMonthlyAttendanceSheet(
+        payrollData,
+        attendance,
+        contracts,
+        billingCycleDates,
+        monthLabel,
+        selectedYear,
+        "drivers",
+        settings.section
+      )
+      toast.success("Monthly grid attendance sheet downloaded.")
+    } catch (e) {
+      console.error(e)
+      toast.error("Failed to generate monthly grid attendance sheet PDF.")
+    }
+  }
+
+  const handlePreviewMonthlyGridSheet = () => {
+    if (payrollData.length === 0) return
+    try {
+      const result = generateMonthlyAttendanceSheet(
+        payrollData,
+        attendance,
+        contracts,
+        billingCycleDates,
+        monthLabel,
+        selectedYear,
+        "drivers",
+        settings.section,
+        true
+      )
+      if (result) {
+        setPreviewPdf({
+          url: result.url,
+          filename: result.filename,
+          title: `Monthly Grid Attendance Sheet — ${monthLabel} ${selectedYear}`,
+        })
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error("Failed to preview monthly grid attendance sheet PDF.")
     }
   }
 
@@ -504,6 +552,27 @@ export const DisbursementRecords: React.FC = () => {
                   variant="outline"
                   className="cursor-pointer rounded-l-none border-l-slate-200 px-2.5"
                   title="Preview Attendance Report"
+                >
+                  <RiEyeLine className="size-4" />
+                </Button>
+              </div>
+
+              <div className="inline-flex rounded-lg shadow-sm">
+                <Button
+                  onClick={handleDownloadMonthlyGridSheet}
+                  size="sm"
+                  variant="secondary"
+                  className="cursor-pointer rounded-r-none border-r border-secondary-foreground/10"
+                >
+                  <RiCalendarEventLine className="mr-1.5 size-4" />
+                  Monthly Grid Sheet
+                </Button>
+                <Button
+                  onClick={handlePreviewMonthlyGridSheet}
+                  size="sm"
+                  variant="secondary"
+                  className="cursor-pointer rounded-l-none px-2.5"
+                  title="Preview Monthly Grid Sheet"
                 >
                   <RiEyeLine className="size-4" />
                 </Button>

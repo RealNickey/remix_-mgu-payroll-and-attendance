@@ -1,7 +1,7 @@
-import jsPDF from "jspdf"
+import jsPDF from "jspdf-fontkit"
 import autoTable from "jspdf-autotable"
 import type { PayrollRow } from "./db"
-import type { WageSettings, JobCategory } from "./types"
+import type { WageSettings, JobCategory, Contract } from "./types"
 import { formatIndianRupees, daysToWords, formatDateKey } from "./payrollUtils"
 import { NOTO_SANS_MALAYALAM_BASE64 } from "./malayalamFont"
 
@@ -818,3 +818,258 @@ export function generateSettingsPreview(settings: WageSettings) {
 
   doc.save("Wage_and_Overtime_Rates_Policy.pdf")
 }
+
+export function generateMonthlyAttendanceSheet(
+  payroll: PayrollRow[],
+  attendanceData: Record<string, Record<string, any>>,
+  contracts: Contract[],
+  billingCycleDates: Date[],
+  monthName: string,
+  year: number,
+  categoryName: string = "drivers",
+  sectionName?: string,
+  asPreview?: boolean
+): { url: string; filename: string } | void {
+  // Landscape A4 sheet
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4",
+  })
+
+  // Register Malayalam Font
+  doc.addFileToVFS("NotoSansMalayalam-Regular.ttf", NOTO_SANS_MALAYALAM_BASE64)
+  doc.addFont("NotoSansMalayalam-Regular.ttf", "NotoSansMalayalam", "normal")
+
+  const pageWidth = doc.internal.pageSize.width // 297mm
+  const pageHeight = doc.internal.pageSize.height // 210mm
+  const margin = 12
+
+  // Format cycle range string e.g. "May 26-June 25"
+  let cycleStartMonth = ""
+  let cycleStartDay = ""
+  let cycleEndMonth = ""
+  let cycleEndDay = ""
+
+  if (billingCycleDates.length > 0) {
+    const firstDate = billingCycleDates[0]
+    const lastDate = billingCycleDates[billingCycleDates.length - 1]
+    const shortMonths = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "June",
+      "July",
+      "Aug",
+      "Sept",
+      "Oct",
+      "Nov",
+      "Dec",
+    ]
+    cycleStartMonth = shortMonths[firstDate.getMonth()]
+    cycleStartDay = String(firstDate.getDate())
+    cycleEndMonth = shortMonths[lastDate.getMonth()]
+    cycleEndDay = String(lastDate.getDate())
+  }
+
+  const cycleRangeStr = `${cycleStartMonth} ${cycleStartDay}-${cycleEndMonth} ${cycleEndDay}`
+
+  // 1. HEADER SECTION
+  // Top Left: ADB5 (or section without dot)
+  const cleanSection = (sectionName || "Ad.B5").replace(/\./g, "").toUpperCase()
+  doc.setFont("Helvetica", "bold")
+  doc.setFontSize(13)
+  doc.setTextColor(15, 23, 42)
+  doc.text(cleanSection, margin, 14)
+
+  // Top Center: Attendance of dailywage drivers for the month of june 2026(May 26-June 25)
+  doc.setFont("NotoSansMalayalam", "normal")
+  doc.setFontSize(10.5)
+  const centerTitle = `Attendance of dailywage ${categoryName.toLowerCase()} for the month of ${monthName.toLowerCase()} ${year}(${cycleRangeStr})`
+  doc.text(centerTitle, pageWidth / 2, 14, { align: "center" })
+
+  // Top Right: june attendance
+  doc.setFont("Helvetica", "normal")
+  doc.setFontSize(10)
+  doc.setTextColor(30, 41, 59)
+  doc.text(`${monthName.toLowerCase()} attendance`, pageWidth - margin, 14, {
+    align: "right",
+  })
+
+  // 2. TABLE STRUCTURE
+  // 33 Columns: Col 0: Name, Col 1..31: Day numbers, Col 32: Total count (blank header)
+  const headers = ["Name"]
+
+  // Fill up to 31 date columns
+  for (let i = 0; i < 31; i++) {
+    if (i < billingCycleDates.length) {
+      const dayNum = billingCycleDates[i].getDate()
+      headers.push(String(dayNum))
+    } else {
+      headers.push("")
+    }
+  }
+  headers.push("") // Blank header for Column 33 (Total count)
+
+  // Filter payroll rows by category if specified, otherwise include all rows
+  const categoryFilteredRows = categoryName
+    ? payroll.filter(
+        (r) => r.category.toLowerCase() === categoryName.toLowerCase()
+      )
+    : payroll
+  const targetRows =
+    categoryFilteredRows.length > 0 ? categoryFilteredRows : payroll
+
+  // Prepare body rows
+  const bodyRows: any[] = []
+  targetRows.forEach((row) => {
+    const empAtt = attendanceData[row.employeeId] || {}
+    let tally = 0
+
+    // Filter and sort contracts for this employee
+    const empContracts = contracts.filter((c) => c.employeeId === row.employeeId)
+    const sortedContracts = [...empContracts].sort((a, b) => a.startDate.localeCompare(b.startDate))
+    const minStartDate = sortedContracts.length > 0 ? sortedContracts[0].startDate : ""
+    const maxEndDate = sortedContracts.length > 0 ? sortedContracts[sortedContracts.length - 1].endDate : ""
+
+    const getStatusForDate = (date: Date, isFN: boolean): string => {
+      const dateStr = formatDateKey(date)
+      if (sortedContracts.length === 0) {
+        return "--"
+      }
+      if (dateStr < minStartDate || dateStr > maxEndDate) {
+        return "--"
+      }
+      const isCovered = sortedContracts.some(
+        (c) => c.startDate <= dateStr && dateStr <= c.endDate
+      )
+      if (!isCovered) {
+        return "BRK"
+      }
+
+      const rec = empAtt[dateStr]
+      if (rec) {
+        const isPresent = isFN ? rec.fn : rec.an
+        if (isPresent) {
+          tally += 0.5
+          return "X"
+        } else if (rec.holiday) {
+          return "H"
+        }
+      }
+      return ""
+    }
+
+    // Row 1: FN
+    const fnRowCells: any[] = [{ content: row.name, rowSpan: 2 }]
+    for (let i = 0; i < 31; i++) {
+      if (i < billingCycleDates.length) {
+        fnRowCells.push(getStatusForDate(billingCycleDates[i], true))
+      } else {
+        fnRowCells.push("")
+      }
+    }
+
+    // Row 2: AN
+    const anRowCells: any[] = []
+    for (let i = 0; i < 31; i++) {
+      if (i < billingCycleDates.length) {
+        anRowCells.push(getStatusForDate(billingCycleDates[i], false))
+      } else {
+        anRowCells.push("")
+      }
+    }
+
+    // Column 33 Total Tally count (spans both rows)
+    const totalDisplay =
+      tally > 0
+        ? String(Math.round(tally) === tally ? tally : tally.toFixed(1))
+        : String(row.regularDays || 0)
+
+    fnRowCells.push({ content: totalDisplay, rowSpan: 2 })
+
+    bodyRows.push(fnRowCells)
+    bodyRows.push(anRowCells)
+  })
+
+  // Column width calculations for 273mm usable width
+  // Col 0: 52mm
+  // Cols 1..31: 6.8mm each (210.8mm)
+  // Col 32: 10.2mm
+  const columnStylesObj: Record<number, any> = {
+    0: {
+      cellWidth: 52,
+      halign: "left",
+      font: "NotoSansMalayalam",
+      fontStyle: "normal",
+    },
+    32: { cellWidth: 10.2, halign: "center", fontStyle: "bold" },
+  }
+  for (let i = 1; i <= 31; i++) {
+    columnStylesObj[i] = { cellWidth: 6.8, halign: "center" }
+  }
+
+  autoTable(doc, {
+    startY: 18,
+    head: [headers],
+    body: bodyRows,
+    theme: "grid",
+    headStyles: {
+      fillColor: [255, 255, 255],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      fontSize: 8.5,
+      halign: "center",
+      valign: "middle",
+      lineWidth: 0.2,
+      lineColor: [0, 0, 0],
+    },
+    bodyStyles: {
+      fontSize: 8,
+      textColor: [0, 0, 0],
+      valign: "middle",
+      lineWidth: 0.2,
+      lineColor: [0, 0, 0],
+      cellPadding: 1,
+    },
+    columnStyles: columnStylesObj,
+    margin: { left: margin, right: margin },
+  })
+
+  const tableBottom = (doc as any).lastAutoTable.finalY || 160
+
+  // 3. FOOTER SIGNATURES SECTION (4 spots: Assistant, SO, Assistant Registrar, Estate Officer)
+  const sigY = Math.max(tableBottom + 22, pageHeight - 20)
+
+  doc.setFont("NotoSansMalayalam", "normal")
+  doc.setFontSize(9.5)
+  doc.setTextColor(0, 0, 0)
+  doc.setDrawColor(0, 0, 0)
+  doc.setLineWidth(0.3)
+
+  const usableWidth = pageWidth - margin * 2
+  const colWidth = usableWidth / 4
+
+  const signatories = [
+    { title: "അസിസ്റ്റന്റ്", x: margin + colWidth * 0.5 },
+    { title: "സെക്ഷൻ ഓഫീസർ", x: margin + colWidth * 1.5 },
+    { title: "അസിസ്റ്റന്റ് രജിസ്ട്രാർ", x: margin + colWidth * 2.5 },
+    { title: "എസ്റ്റേറ്റ് ഓഫീസർ", x: margin + colWidth * 3.5 },
+  ]
+
+  signatories.forEach((sig) => {
+    doc.line(sig.x - 20, sigY, sig.x + 20, sigY)
+    doc.text(sig.title, sig.x, sigY + 6, { align: "center" })
+  })
+
+  // Return preview or trigger download
+  const sanitizedCat = categoryName.replace(/[^a-zA-Z0-9]/g, "_")
+  const filename = `Monthly_Attendance_Sheet_${sanitizedCat}_${monthName}_${year}.pdf`
+  if (asPreview) {
+    return { url: URL.createObjectURL(doc.output("blob")), filename }
+  }
+  doc.save(filename)
+}
+
