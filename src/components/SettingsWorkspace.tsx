@@ -20,6 +20,14 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion"
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import {
   RiSettings4Line,
   RiSave2Line,
   RiInformationLine,
@@ -30,6 +38,8 @@ import {
   RiAddLine,
   RiCalendarEventLine,
   RiBriefcaseLine,
+  RiLockPasswordLine,
+  RiKeyLine,
 } from "@remixicon/react"
 import { toast } from "sonner"
 import { generateSettingsPreview } from "@/lib/pdfGenerator"
@@ -211,9 +221,13 @@ export const SettingsWorkspace = () => {
     toast.success(`Category "${catToDelete}" removed from draft list.`)
   }
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault()
+  // Password lock state
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [passwordInput, setPasswordInput] = useState("")
+  const [passwordError, setPasswordError] = useState(false)
 
+  // Execute actual saving after password authentication
+  const executeSaveSettings = () => {
     const finalWageRates: Record<string, number> = {}
     const finalOtRates: Record<string, number> = {}
     const finalOtCeilings: Record<string, number> = {}
@@ -250,6 +264,28 @@ export const SettingsWorkspace = () => {
         },
       }
     )
+  }
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Trigger password lock verification dialog
+    setPasswordInput("")
+    setPasswordError(false)
+    setShowPasswordModal(true)
+  }
+
+  const handleConfirmPassword = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const requiredPassword = import.meta.env.VITE_SETTINGS_PASSWORD || "admin123"
+    if (passwordInput === requiredPassword) {
+      setShowPasswordModal(false)
+      setPasswordInput("")
+      setPasswordError(false)
+      executeSaveSettings()
+    } else {
+      setPasswordError(true)
+      toast.error("Incorrect password! Settings were not saved.")
+    }
   }
 
   const handlePdfPreview = () => {
@@ -895,6 +931,64 @@ export const SettingsWorkspace = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Password Lock Modal for Saving Settings */}
+      <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <RiLockPasswordLine className="size-5" />
+              </div>
+              <div>
+                <DialogTitle className="font-heading text-base font-bold">
+                  Password Required to Save Settings
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  Settings are locked. Enter password (from .env) to save changes.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <form onSubmit={handleConfirmPassword} className="flex flex-col gap-4 py-2">
+            <Field data-invalid={passwordError}>
+              <FieldLabel htmlFor="settings-password">Admin Password</FieldLabel>
+              <Input
+                id="settings-password"
+                type="password"
+                placeholder="Enter password..."
+                value={passwordInput}
+                onChange={(e) => {
+                  setPasswordInput(e.target.value)
+                  if (passwordError) setPasswordError(false)
+                }}
+                autoFocus
+                aria-invalid={passwordError}
+              />
+              {passwordError && (
+                <p className="mt-1 text-xs text-destructive">
+                  Incorrect password. Check VITE_SETTINGS_PASSWORD in your .env file.
+                </p>
+              )}
+            </Field>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPasswordModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">
+                <RiKeyLine data-icon="inline-start" className="size-4" />
+                Unlock & Save
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

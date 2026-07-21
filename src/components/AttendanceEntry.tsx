@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Toggle } from "@/components/ui/toggle"
 import { EmployeeAvatar } from "@/components/ui/employee-avatar"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Popover,
   PopoverContent,
@@ -71,6 +72,7 @@ import {
   RiInformationLine,
   RiEyeLine,
   RiFilePaper2Line,
+  RiFilter3Line,
 } from "@remixicon/react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -172,14 +174,43 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
     [contracts, cycleStartDateStr, cycleEndDateStr]
   )
 
+  const [filterCategories, setFilterCategories] = useState<string[]>([])
+
+  const availableCategories = useMemo(() => {
+    if (settings.categories && settings.categories.length > 0) {
+      return settings.categories
+    }
+    const catSet = new Set<string>(["Gardeners", "Drivers", "Cooks", "Helpers"])
+    employees.forEach((e) => catSet.add(e.category))
+    return Array.from(catSet)
+  }, [settings.categories, employees])
+
+  const toggleCategoryFilter = (cat: string, checked: boolean) => {
+    if (checked) {
+      setFilterCategories((prev) => [...prev, cat])
+    } else {
+      setFilterCategories((prev) => prev.filter((c) => c !== cat))
+    }
+  }
+
   const filteredEmployees = useMemo(() => {
-    const q = searchQuery.toLowerCase()
-    return employees.filter(
-      (emp) =>
-        emp.name.toLowerCase().includes(q) ||
-        emp.category.toLowerCase().includes(q)
-    )
-  }, [employees, searchQuery])
+    const q = searchQuery.toLowerCase().trim()
+    return employees.filter((emp) => {
+      if (
+        filterCategories.length > 0 &&
+        !filterCategories.includes(emp.category)
+      ) {
+        return false
+      }
+      if (q) {
+        return (
+          emp.name.toLowerCase().includes(q) ||
+          emp.category.toLowerCase().includes(q)
+        )
+      }
+      return true
+    })
+  }, [employees, searchQuery, filterCategories])
 
   // Auto-select first employee
   useEffect(() => {
@@ -596,34 +627,74 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
                     {filteredEmployees.length}
                   </Badge>
                 </div>
-                {/* Search */}
-                <div className="relative mt-3 flex w-full items-center">
+                {/* Search & Checkbox Filter */}
+                <div className="mt-3 flex w-full items-center gap-1.5">
                   <div className="relative flex-1">
                     <RiSearchLine className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       placeholder="Search staff (e.g., John)…"
                       name="staff-search"
                       aria-label="Search staff"
-                      className={cn(
-                        "h-8 pl-8 text-xs",
-                        searchQuery
-                          ? "rounded-r-none border-r-0 focus-visible:z-10"
-                          : ""
-                      )}
+                      className="h-8 pl-8 text-xs"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                  {searchQuery && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 rounded-l-none bg-muted/30 px-2.5 text-[10px] text-muted-foreground hover:text-foreground"
-                      onClick={() => setSearchQuery("")}
+
+                  {/* Checkbox Category Filter Popover */}
+                  <Popover>
+                    <PopoverTrigger
+                      render={
+                        <Button
+                          variant={filterCategories.length > 0 ? "secondary" : "outline"}
+                          size="sm"
+                          className="h-8 shrink-0 px-2 text-xs"
+                          title="Filter categories with Checkbox"
+                        />
+                      }
                     >
-                      Clear
-                    </Button>
-                  )}
+                      <RiFilter3Line className="size-3.5 text-muted-foreground" />
+                      {filterCategories.length > 0 && (
+                        <Badge variant="default" className="ml-1 h-4 px-1 text-[9px] font-mono">
+                          {filterCategories.length}
+                        </Badge>
+                      )}
+                    </PopoverTrigger>
+                    <PopoverContent className="w-48 p-3" align="end">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between border-b border-border/60 pb-1.5">
+                          <span className="font-heading text-xs font-semibold text-foreground">
+                            Categories
+                          </span>
+                          {filterCategories.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setFilterCategories([])}
+                              className="text-[10px] text-rose-500 hover:underline"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto pt-0.5">
+                          {availableCategories.map((cat) => (
+                            <label
+                              key={cat}
+                              className="flex items-center gap-2 rounded px-1.5 py-1 text-xs hover:bg-muted/50 cursor-pointer select-none"
+                            >
+                              <Checkbox
+                                checked={filterCategories.includes(cat)}
+                                onCheckedChange={(checked) =>
+                                  toggleCategoryFilter(cat, !!checked)
+                                }
+                              />
+                              <span className="truncate">{cat}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </CardHeader>
               <Separator />

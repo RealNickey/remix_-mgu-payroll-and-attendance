@@ -47,6 +47,8 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox"
 import { EmployeeAvatar } from "@/components/ui/employee-avatar"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import {
   RiCoinsLine,
   RiGroupLine,
@@ -60,6 +62,7 @@ import {
   RiRestartLine,
   RiSearchLine,
   RiBriefcaseLine,
+  RiArrowDownSLine,
 } from "@remixicon/react"
 import { toast } from "sonner"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
@@ -76,10 +79,8 @@ export const DisbursementRecords: React.FC = () => {
 
   // Multi-Criteria Filters
   const [filterEmployeeId, setFilterEmployeeId] = useState<string>("")
-  const [filterCategory, setFilterCategory] = useState<string>("all")
-  const [filterOtStatus, setFilterOtStatus] = useState<
-    "all" | "has_ot" | "no_ot"
-  >("all")
+  const [filterCategories, setFilterCategories] = useState<string[]>([])
+  const [filterOtStatuses, setFilterOtStatuses] = useState<string[]>([])
   const [filterMinDays, setFilterMinDays] = useState<string>("")
   const [filterMinPay, setFilterMinPay] = useState<string>("")
   const [searchQuery, setSearchQuery] = useState<string>("")
@@ -152,6 +153,23 @@ export const DisbursementRecords: React.FC = () => {
     return Array.from(catSet)
   }, [settings.categories, employees, payrollData])
 
+  // Helper toggle functions for multi-select checkboxes
+  const toggleCategoryFilter = (cat: string, checked: boolean) => {
+    if (checked) {
+      setFilterCategories((prev) => [...prev, cat])
+    } else {
+      setFilterCategories((prev) => prev.filter((c) => c !== cat))
+    }
+  }
+
+  const toggleOtStatusFilter = (status: string, checked: boolean) => {
+    if (checked) {
+      setFilterOtStatuses((prev) => [...prev, status])
+    } else {
+      setFilterOtStatuses((prev) => prev.filter((s) => s !== status))
+    }
+  }
+
   // Filter payroll data by multi-criteria
   const filteredPayrollData = useMemo(() => {
     return payrollData.filter((r) => {
@@ -160,17 +178,22 @@ export const DisbursementRecords: React.FC = () => {
         return false
       }
 
-      // 2. Job Category filter
-      if (filterCategory !== "all" && r.category !== filterCategory) {
+      // 2. Job Category filter (Multi-select Checkbox)
+      if (
+        filterCategories.length > 0 &&
+        !filterCategories.includes(r.category)
+      ) {
         return false
       }
 
-      // 3. Overtime status filter
-      if (filterOtStatus === "has_ot" && r.otDays <= 0) {
-        return false
-      }
-      if (filterOtStatus === "no_ot" && r.otDays > 0) {
-        return false
+      // 3. Overtime status filter (Multi-select Checkbox)
+      if (filterOtStatuses.length === 1) {
+        if (filterOtStatuses.includes("has_ot") && r.otDays <= 0) {
+          return false
+        }
+        if (filterOtStatuses.includes("no_ot") && r.otDays > 0) {
+          return false
+        }
       }
 
       // 4. Min Regular Days filter
@@ -201,8 +224,8 @@ export const DisbursementRecords: React.FC = () => {
   }, [
     payrollData,
     filterEmployeeId,
-    filterCategory,
-    filterOtStatus,
+    filterCategories,
+    filterOtStatuses,
     filterMinDays,
     filterMinPay,
     searchQuery,
@@ -211,16 +234,16 @@ export const DisbursementRecords: React.FC = () => {
   // Check active filter count
   const hasActiveFilters =
     !!filterEmployeeId ||
-    filterCategory !== "all" ||
-    filterOtStatus !== "all" ||
+    filterCategories.length > 0 ||
+    filterOtStatuses.length > 0 ||
     filterMinDays !== "" ||
     filterMinPay !== "" ||
     searchQuery.trim() !== ""
 
   const handleResetFilters = () => {
     setFilterEmployeeId("")
-    setFilterCategory("all")
-    setFilterOtStatus("all")
+    setFilterCategories([])
+    setFilterOtStatuses([])
     setFilterMinDays("")
     setFilterMinPay("")
     setSearchQuery("")
@@ -663,53 +686,128 @@ export const DisbursementRecords: React.FC = () => {
               </Combobox>
             </div>
 
-            {/* 3. Job Category Select */}
+            {/* 3. Job Category Multi-Select Checkbox Filter */}
             <div>
-              <Select
-                value={filterCategory}
-                onValueChange={(val) => setFilterCategory(val || "all")}
-              >
-                <SelectTrigger className="h-8 text-xs">
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-full justify-between text-xs font-normal"
+                    />
+                  }
+                >
                   <div className="flex items-center gap-1.5 truncate">
-                    <RiBriefcaseLine className="size-3.5 text-muted-foreground" />
-                    <SelectValue placeholder="Category" />
+                    <RiBriefcaseLine className="size-3.5 text-muted-foreground shrink-0" />
+                    <span className="truncate">
+                      {filterCategories.length === 0
+                        ? "All Categories"
+                        : `${filterCategories.length} Categories`}
+                    </span>
                   </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {availableCategories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                  <RiArrowDownSLine className="size-3.5 text-muted-foreground shrink-0 opacity-60" />
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-3">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                      <span className="font-heading text-xs font-semibold text-foreground">
+                        Category Filter
+                      </span>
+                      {filterCategories.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setFilterCategories([])}
+                          className="text-[10px] text-rose-500 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pt-1">
+                      {availableCategories.map((cat) => (
+                        <label
+                          key={cat}
+                          className="flex items-center gap-2 rounded px-1.5 py-1 text-xs hover:bg-muted/50 cursor-pointer select-none"
+                        >
+                          <Checkbox
+                            checked={filterCategories.includes(cat)}
+                            onCheckedChange={(checked) =>
+                              toggleCategoryFilter(cat, !!checked)
+                            }
+                          />
+                          <span className="truncate">{cat}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
-            {/* 4. OT Status Select */}
+            {/* 4. OT Status Multi-Select Checkbox Filter */}
             <div>
-              <Select
-                value={filterOtStatus}
-                onValueChange={(val) =>
-                  setFilterOtStatus(val as "all" | "has_ot" | "no_ot")
-                }
-              >
-                <SelectTrigger className="h-8 text-xs">
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-full justify-between text-xs font-normal"
+                    />
+                  }
+                >
                   <div className="flex items-center gap-1.5 truncate">
-                    <RiTimeLine className="size-3.5 text-muted-foreground" />
-                    <SelectValue placeholder="OT Status" />
+                    <RiTimeLine className="size-3.5 text-muted-foreground shrink-0" />
+                    <span className="truncate">
+                      {filterOtStatuses.length === 0 || filterOtStatuses.length === 2
+                        ? "All OT Status"
+                        : filterOtStatuses.includes("has_ot")
+                          ? "With Overtime"
+                          : "Without Overtime"}
+                    </span>
                   </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">All OT Status</SelectItem>
-                    <SelectItem value="has_ot">With Overtime</SelectItem>
-                    <SelectItem value="no_ot">Without Overtime</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                  <RiArrowDownSLine className="size-3.5 text-muted-foreground shrink-0 opacity-60" />
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-3">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                      <span className="font-heading text-xs font-semibold text-foreground">
+                        OT Status Filter
+                      </span>
+                      {filterOtStatuses.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setFilterOtStatuses([])}
+                          className="text-[10px] text-rose-500 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1.5 pt-1">
+                      <label className="flex items-center gap-2 rounded px-1.5 py-1 text-xs hover:bg-muted/50 cursor-pointer select-none">
+                        <Checkbox
+                          checked={filterOtStatuses.includes("has_ot")}
+                          onCheckedChange={(checked) =>
+                            toggleOtStatusFilter("has_ot", !!checked)
+                          }
+                        />
+                        <span>With Overtime</span>
+                      </label>
+                      <label className="flex items-center gap-2 rounded px-1.5 py-1 text-xs hover:bg-muted/50 cursor-pointer select-none">
+                        <Checkbox
+                          checked={filterOtStatuses.includes("no_ot")}
+                          onCheckedChange={(checked) =>
+                            toggleOtStatusFilter("no_ot", !!checked)
+                          }
+                        />
+                        <span>Without Overtime</span>
+                      </label>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* 5. Min Days Input */}

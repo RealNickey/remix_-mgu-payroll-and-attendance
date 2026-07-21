@@ -8,6 +8,7 @@ import { AttendanceEntry } from "@/components/AttendanceEntry"
 import { DisbursementRecords } from "@/components/DisbursementRecords"
 import { SettingsWorkspace } from "@/components/SettingsWorkspace"
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard"
+import { TermsDisclaimerModal } from "@/components/TermsDisclaimerModal"
 import { Badge } from "@/components/ui/badge"
 import {
   RiCalendarCheckLine,
@@ -20,6 +21,7 @@ import {
   RiSunLine,
   RiMoonLine,
   RiShieldCheckLine,
+  RiShieldCrossLine,
   RiTerminalBoxLine,
   RiBarChartLine,
 } from "@remixicon/react"
@@ -36,6 +38,7 @@ function AppLayout() {
   const [activeWorkspace, setActiveWorkspace] =
     useState<WorkspaceType>("attendance")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [showTermsModal, setShowTermsModal] = useState(false)
   const { theme, setTheme } = useTheme()
   const { settings } = useMguDb()
 
@@ -229,6 +232,17 @@ function AppLayout() {
               <span>{sectionDisplay}</span>
             </div>
 
+            {/* T&C Disclaimer Button */}
+            <button
+              onClick={() => setShowTermsModal(true)}
+              className="flex items-center gap-1 rounded-md bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-600 transition-all hover:bg-amber-500/20 dark:bg-amber-500/20 dark:text-amber-400"
+              title="View Terms & Disclaimer"
+              aria-label="View Terms & Disclaimer"
+            >
+              <RiShieldCrossLine className="size-3.5" aria-hidden="true" />
+              <span className="hidden md:inline">T&C Disclaimer</span>
+            </button>
+
             {/* Theme Toggle Button */}
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -253,6 +267,8 @@ function AppLayout() {
           {renderActiveWorkspace()}
         </main>
       </div>
+
+      <TermsDisclaimerModal open={showTermsModal} onOpenChange={setShowTermsModal} />
     </div>
   )
 }
