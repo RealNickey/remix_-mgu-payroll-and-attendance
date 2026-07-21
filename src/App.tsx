@@ -8,7 +8,11 @@ import { AttendanceEntry } from "@/components/AttendanceEntry"
 import { DisbursementRecords } from "@/components/DisbursementRecords"
 import { SettingsWorkspace } from "@/components/SettingsWorkspace"
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard"
-import { TermsDisclaimerModal } from "@/components/TermsDisclaimerModal"
+import {
+  TermsDisclaimerModal,
+  TermsGateScreen,
+  STORAGE_KEY,
+} from "@/components/TermsDisclaimerModal"
 import { Badge } from "@/components/ui/badge"
 import {
   RiCalendarCheckLine,
@@ -34,7 +38,11 @@ type WorkspaceType =
   | "disbursement"
   | "settings"
 
-function AppLayout() {
+interface AppLayoutProps {
+  onRevokeTc: () => void
+}
+
+function AppLayout({ onRevokeTc }: AppLayoutProps) {
   const [activeWorkspace, setActiveWorkspace] =
     useState<WorkspaceType>("attendance")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -268,19 +276,32 @@ function AppLayout() {
         </main>
       </div>
 
-      <TermsDisclaimerModal open={showTermsModal} onOpenChange={setShowTermsModal} />
+      <TermsDisclaimerModal
+        open={showTermsModal}
+        onOpenChange={setShowTermsModal}
+        onRevoke={onRevokeTc}
+      />
     </div>
   )
 }
 
 export function App() {
+  const [isTcAccepted, setIsTcAccepted] = useState<boolean>(() => {
+    return localStorage.getItem(STORAGE_KEY) === "true"
+  })
+
   return (
     <MguDbProvider>
-      <AppLayout />
+      {!isTcAccepted ? (
+        <TermsGateScreen onAccept={() => setIsTcAccepted(true)} />
+      ) : (
+        <AppLayout onRevokeTc={() => setIsTcAccepted(false)} />
+      )}
       <Toaster position="bottom-right" richColors />
     </MguDbProvider>
   )
 }
 
 export default App
+
 
