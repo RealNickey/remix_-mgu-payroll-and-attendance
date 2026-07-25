@@ -43,6 +43,10 @@ interface MguDbContextType {
     goNumber: string,
     goDate: string
   ) => { success: boolean; error?: string }
+  updateContract: (
+    id: string,
+    updatedFields: Partial<Omit<Contract, "id">>
+  ) => { success: boolean; error?: string }
   voidContract: (id: string) => void
   updateAttendance: (
     employeeId: string,
@@ -277,6 +281,81 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
       goDate,
     }
     saveContracts([...contracts, newContract])
+    return { success: true }
+  }
+
+  const updateContract = (
+    id: string,
+    updatedFields: Partial<Omit<Contract, "id">>
+  ): { success: boolean; error?: string } => {
+    const existingContract = contracts.find((c) => c.id === id)
+    if (!existingContract) {
+      return { success: false, error: "Contract not found." }
+    }
+
+    const employeeId = updatedFields.employeeId ?? existingContract.employeeId
+    const startDate = updatedFields.startDate ?? existingContract.startDate
+    const endDate = updatedFields.endDate ?? existingContract.endDate
+    const goNumber = updatedFields.goNumber ?? existingContract.goNumber
+    const goDate = updatedFields.goDate ?? existingContract.goDate
+
+    const duration = getContractDurationDays(startDate, endDate)
+    if (duration > 90) {
+      return {
+        success: false,
+        error: `Contract duration (${duration} days) exceeds the maximum allowable period of 90 days.`,
+      }
+    }
+    if (duration < 1) {
+      return {
+        success: false,
+        error: "Contract end date must be on or after the start date.",
+      }
+    }
+
+    const otherEmpContracts = contracts.filter(
+      (c) => c.employeeId === employeeId && c.id !== id
+    )
+    for (const c of otherEmpContracts) {
+      if (doIntervalsOverlap(c.startDate, c.endDate, startDate, endDate)) {
+        return {
+          success: false,
+          error: `Contract dates (${startDate} to ${endDate}) overlap with an existing contract (${c.startDate} to ${c.endDate}).`,
+        }
+      }
+      if (c.endDate < startDate) {
+        const gap = validateConsecutiveContractsGap(c.endDate, startDate)
+        if (!gap.isValid) {
+          return {
+            success: false,
+            error: `Consecutive contract violation: There must be at least 1 full-day gap between contracts. Existing contract ends on ${c.endDate}.`,
+          }
+        }
+      }
+      if (endDate < c.startDate) {
+        const gap = validateConsecutiveContractsGap(endDate, c.startDate)
+        if (!gap.isValid) {
+          return {
+            success: false,
+            error: `Consecutive contract violation: There must be at least 1 full-day gap between contracts. Existing contract starts on ${c.startDate}.`,
+          }
+        }
+      }
+    }
+
+    const updatedContracts = contracts.map((c) =>
+      c.id === id
+        ? {
+            ...c,
+            employeeId,
+            startDate,
+            endDate,
+            goNumber,
+            goDate,
+          }
+        : c
+    )
+    saveContracts(updatedContracts)
     return { success: true }
   }
 
@@ -523,6 +602,7 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
         updateEmployee,
         deleteEmployee,
         addContract,
+        updateContract,
         voidContract,
         updateAttendance,
         batchMarkWeekdays,

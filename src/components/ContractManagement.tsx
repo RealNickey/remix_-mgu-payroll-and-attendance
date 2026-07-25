@@ -36,6 +36,7 @@ import { EmployeeAvatar } from "@/components/ui/employee-avatar"
 import { Badge } from "@/components/ui/badge"
 import { Empty } from "@/components/ui/empty"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import type { Contract } from "@/lib/types"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,11 +49,22 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog"
+import {
   RiFilePaperLine,
   RiFileAddLine,
   RiSearchLine,
   RiFileList3Line,
   RiAlertLine,
+  RiPencilLine,
+  RiSave2Line,
 } from "@remixicon/react"
 import { toast } from "sonner"
 import { DatePicker } from "@/components/ui/date-picker"
@@ -68,8 +80,14 @@ interface ContractManagementProps {
 export const ContractManagement = ({
   onNavigateToEmployees,
 }: ContractManagementProps) => {
-  const { employees, contracts, addContract, voidContract, saveContracts } =
-    useMguDb()
+  const {
+    employees,
+    contracts,
+    addContract,
+    updateContract,
+    voidContract,
+    saveContracts,
+  } = useMguDb()
 
   // Form states
   const [employeeId, setEmployeeId] = useState("")
@@ -79,6 +97,21 @@ export const ContractManagement = ({
   const [goDate, setGoDate] = useState("")
 
   const [isSelectingTo, setIsSelectingTo] = useState(false)
+
+  // Edit contract modal state
+  const [editingContract, setEditingContract] = useState<Contract | null>(null)
+  const [editEmployeeId, setEditEmployeeId] = useState("")
+  const [editStartDate, setEditStartDate] = useState("")
+  const [editEndDate, setEditEndDate] = useState("")
+  const [editGoNumber, setEditGoNumber] = useState("")
+  const [editGoDate, setEditGoDate] = useState("")
+  const [editIsSelectingTo, setEditIsSelectingTo] = useState(false)
+
+  // Edit validation states
+  const [editEmpError, setEditEmpError] = useState(false)
+  const [editStartDateError, setEditStartDateError] = useState(false)
+  const [editGoError, setEditGoError] = useState(false)
+  const [editGoDateError, setEditGoDateError] = useState(false)
 
   const parseLocalDate = (dateStr: string) => {
     if (!dateStr) return undefined
@@ -181,6 +214,172 @@ export const ContractManagement = ({
         setIsSelectingTo(false)
       }
     }
+  }
+
+  const editDateRange = useMemo<DateRange | undefined>(() => {
+    if (!editStartDate) return undefined
+    const from = parseLocalDate(editStartDate)
+    const to = editEndDate ? parseLocalDate(editEndDate) : undefined
+    return { from, to }
+  }, [editStartDate, editEndDate])
+
+  // Find all contracts for selected employee in edit modal (excluding current editing contract)
+  const editEmpContracts = useMemo(() => {
+    if (!editEmployeeId || !editingContract) return []
+    return contracts.filter(
+      (c) => c.employeeId === editEmployeeId && c.id !== editingContract.id
+    )
+  }, [contracts, editEmployeeId, editingContract])
+
+  // Dates covered by existing contracts for selected employee (excluding current editing contract)
+  const editExistingContractDates = useMemo(() => {
+    const dates: Date[] = []
+    editEmpContracts.forEach((c) => {
+      const s = parseLocalDate(c.startDate)
+      const e = parseLocalDate(c.endDate)
+      if (s && e) {
+        const current = new Date(s)
+        while (current <= e) {
+          dates.push(new Date(current))
+          current.setDate(current.getDate() + 1)
+        }
+      }
+    })
+    return dates
+  }, [editEmpContracts])
+
+  // Live overlap check for edit
+  const editOverlapCheck = useMemo(() => {
+    if (!editEmployeeId || !editStartDate || !editEndDate || !editingContract) {
+      return { isOverlap: false, error: "" }
+    }
+    for (const c of editEmpContracts) {
+      if (doIntervalsOverlap(c.startDate, c.endDate, editStartDate, editEndDate)) {
+        return {
+          isOverlap: true,
+          error: `Contract dates (${editStartDate} to ${editEndDate}) overlap with an existing contract (${c.startDate} to ${c.endDate} - U.O. ${c.goNumber}).`,
+        }
+      }
+    }
+    return { isOverlap: false, error: "" }
+  }, [editEmployeeId, editStartDate, editEndDate, editingContract, editEmpContracts])
+
+  const handleEditRangeSelect = (
+    _range: DateRange | undefined,
+    selectedDay: Date
+  ) => {
+    if (!selectedDay) {
+      setEditStartDate("")
+      setEditEndDate("")
+      setEditIsSelectingTo(false)
+      return
+    }
+
+    if (!editIsSelectingTo) {
+      const fromStr = formatLocalDate(selectedDay)
+      const toDate = addDays(selectedDay, 89)
+      const toStr = formatLocalDate(toDate)
+
+      setEditStartDate(fromStr)
+      setEditEndDate(toStr)
+      setEditIsSelectingTo(true)
+      setEditStartDateError(false)
+    } else {
+      const start = editStartDate ? parseLocalDate(editStartDate) : undefined
+      if (start && selectedDay < start) {
+        const fromStr = formatLocalDate(selectedDay)
+        const toDate = addDays(selectedDay, 89)
+        const toStr = formatLocalDate(toDate)
+
+        setEditStartDate(fromStr)
+        setEditEndDate(toStr)
+        setEditIsSelectingTo(true)
+      } else {
+        const toStr = formatLocalDate(selectedDay)
+        setEditEndDate(toStr)
+        setEditIsSelectingTo(false)
+      }
+    }
+  }
+
+  const openEditModal = (contract: Contract) => {
+    setEditingContract(contract)
+    setEditEmployeeId(contract.employeeId)
+    setEditStartDate(contract.startDate)
+    setEditEndDate(contract.endDate)
+    setEditGoNumber(contract.goNumber)
+    setEditGoDate(contract.goDate)
+    setEditEmpError(false)
+    setEditStartDateError(false)
+    setEditGoError(false)
+    setEditGoDateError(false)
+    setEditIsSelectingTo(false)
+  }
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingContract) return
+
+    let hasError = false
+    if (!editEmployeeId) {
+      setEditEmpError(true)
+      hasError = true
+    } else {
+      setEditEmpError(false)
+    }
+
+    if (!editStartDate || !editEndDate) {
+      setEditStartDateError(true)
+      hasError = true
+    } else {
+      setEditStartDateError(false)
+    }
+
+    if (!editGoNumber.trim()) {
+      setEditGoError(true)
+      hasError = true
+    } else {
+      setEditGoError(false)
+    }
+
+    if (!editGoDate) {
+      setEditGoDateError(true)
+      hasError = true
+    } else {
+      setEditGoDateError(false)
+    }
+
+    if (hasError) {
+      toast.error("Please fill in all required fields.")
+      return
+    }
+
+    const previousContracts = [...contracts]
+    const result = updateContract(editingContract.id, {
+      employeeId: editEmployeeId,
+      startDate: editStartDate,
+      endDate: editEndDate,
+      goNumber: editGoNumber.trim(),
+      goDate: editGoDate,
+    })
+
+    if (!result.success) {
+      toast.error(result.error || "Failed to update contract.")
+      return
+    }
+
+    const emp = employees.find((e) => e.id === editEmployeeId)
+    toast.success(
+      `Service contract ${editGoNumber.trim()} updated for ${emp?.name || "employee"}.`,
+      {
+        action: {
+          label: "Undo",
+          onClick: () => saveContracts(previousContracts),
+        },
+      }
+    )
+
+    setEditingContract(null)
   }
 
   // Search filter
@@ -740,55 +939,67 @@ export const ContractManagement = ({
                                 </div>
                               </TableCell>
                               <TableCell className="text-right">
-                                <AlertDialog>
-                                  <AlertDialogTrigger
-                                    render={
-                                      <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        className="opacity-0 transition-opacity group-hover/row:opacity-100"
-                                      >
-                                        Void
-                                      </Button>
-                                    }
-                                  />
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Void Service Contract?
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription className="text-sm text-muted-foreground">
-                                        Are you sure you want to void contract{" "}
-                                        <strong className="text-foreground">
-                                          {c.goNumber}
-                                        </strong>
-                                        ?
-                                        <br />
-                                        <br />
-                                        <span className="font-medium text-destructive">
-                                          Warning:
-                                        </span>{" "}
-                                        Voiding this contract will affect
-                                        payroll calculation for dates within its
-                                        duration, as there will be no covering
-                                        contract. This cannot be undone.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
-                                        Cancel
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() =>
-                                          handleVoid(c.id, c.goNumber)
-                                        }
-                                        className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
-                                      >
-                                        Void Contract
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="opacity-0 transition-opacity group-hover/row:opacity-100"
+                                    onClick={() => openEditModal(c)}
+                                  >
+                                    <RiPencilLine className="size-3.5" data-icon="inline-start" />
+                                    Edit
+                                  </Button>
+
+                                  <AlertDialog>
+                                    <AlertDialogTrigger
+                                      render={
+                                        <Button
+                                          variant="destructive"
+                                          size="sm"
+                                          className="opacity-0 transition-opacity group-hover/row:opacity-100"
+                                        >
+                                          Void
+                                        </Button>
+                                      }
+                                    />
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                          Void Service Contract?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription className="text-sm text-muted-foreground">
+                                          Are you sure you want to void contract{" "}
+                                          <strong className="text-foreground">
+                                            {c.goNumber}
+                                          </strong>
+                                          ?
+                                          <br />
+                                          <br />
+                                          <span className="font-medium text-destructive">
+                                            Warning:
+                                          </span>{" "}
+                                          Voiding this contract will affect
+                                          payroll calculation for dates within its
+                                          duration, as there will be no covering
+                                          contract. This cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>
+                                          Cancel
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() =>
+                                            handleVoid(c.id, c.goNumber)
+                                          }
+                                          className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
+                                        >
+                                          Void Contract
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
                               </TableCell>
                             </TableRow>
                           )
@@ -802,6 +1013,202 @@ export const ContractManagement = ({
           </div>
         </div>
       )}
+
+      {/* Edit Service Contract Modal */}
+      <Dialog
+        open={editingContract !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingContract(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-heading text-lg font-bold">
+              <RiPencilLine className="size-5 text-primary" />
+              Edit Service Contract
+            </DialogTitle>
+            <DialogDescription>
+              Update the service contract terms, employee, or order details.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
+            <FieldGroup>
+              <Field data-invalid={editEmpError ? "true" : undefined}>
+                <FieldLabel>Select Employee</FieldLabel>
+                <Combobox
+                  value={editEmployeeId}
+                  onValueChange={(val) => {
+                    setEditEmployeeId(val as string)
+                    setEditEmpError(false)
+                  }}
+                  itemToStringLabel={(val) => {
+                    if (!val) return ""
+                    const emp = employees.find((e) => e.id === val)
+                    return emp ? emp.name : ""
+                  }}
+                  itemToStringValue={(val) => val as string}
+                >
+                  <ComboboxInput
+                    placeholder="Choose employee…"
+                    name="edit-employee-select"
+                    aria-label="Select employee"
+                    autoComplete="off"
+                  />
+                  <ComboboxContent>
+                    <ComboboxEmpty>No employee found.</ComboboxEmpty>
+                    <ComboboxList>
+                      {employees.map((emp) => (
+                        <ComboboxItem
+                          key={emp.id}
+                          value={emp.id}
+                          className="flex items-center gap-2"
+                        >
+                          <EmployeeAvatar employee={emp} size="sm" />
+                          <span>
+                            {emp.name} ({emp.category})
+                          </span>
+                        </ComboboxItem>
+                      ))}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+                {editEmpError && (
+                  <FieldError>Employee is required.</FieldError>
+                )}
+              </Field>
+
+              <Field
+                data-invalid={
+                  editStartDateError || editOverlapCheck.isOverlap
+                    ? "true"
+                    : undefined
+                }
+              >
+                <FieldLabel htmlFor="editContractPeriod">
+                  Contract Period
+                </FieldLabel>
+                <div className="flex items-center gap-2">
+                  <DatePickerWithRange
+                    id="editContractPeriod"
+                    className="flex-1"
+                    date={editDateRange}
+                    setDate={() => {}}
+                    onSelect={handleEditRangeSelect}
+                    isError={editStartDateError || editOverlapCheck.isOverlap}
+                    errorMessage={
+                      editOverlapCheck.isOverlap
+                        ? editOverlapCheck.error
+                        : editStartDateError
+                          ? "Contract period is required."
+                          : undefined
+                    }
+                    overlappingDays={editExistingContractDates}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setEditStartDate("")
+                      setEditEndDate("")
+                      setEditIsSelectingTo(false)
+                    }}
+                    disabled={!editStartDate && !editEndDate}
+                    className="h-9 shrink-0 px-3"
+                  >
+                    Reset
+                  </Button>
+                </div>
+                {editStartDateError && (
+                  <FieldError>Contract period is required.</FieldError>
+                )}
+                {editOverlapCheck.isOverlap && (
+                  <FieldError className="font-semibold text-destructive">
+                    {editOverlapCheck.error}
+                  </FieldError>
+                )}
+                {editStartDate && editEndDate && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Selected Duration:{" "}
+                    <span className="font-semibold text-foreground">
+                      {parseLocalDate(editStartDate)?.toLocaleDateString(
+                        "en-GB"
+                      )}
+                    </span>{" "}
+                    to{" "}
+                    <span className="font-semibold text-foreground">
+                      {parseLocalDate(editEndDate)?.toLocaleDateString(
+                        "en-GB"
+                      )}
+                    </span>{" "}
+                    (Total{" "}
+                    {Math.round(
+                      (parseLocalDate(editEndDate)!.getTime() -
+                        parseLocalDate(editStartDate)!.getTime()) /
+                        (1000 * 60 * 60 * 24)
+                    ) + 1}{" "}
+                    days)
+                  </p>
+                )}
+              </Field>
+
+              <Field data-invalid={editGoError ? "true" : undefined}>
+                <FieldLabel htmlFor="editGoNumber">
+                  University Order No. (U.O.)
+                </FieldLabel>
+                <Input
+                  id="editGoNumber"
+                  name="editGoNumber"
+                  spellCheck={false}
+                  placeholder="e.g. Ad.B3/928/2026/MGU"
+                  value={editGoNumber}
+                  onChange={(e) => {
+                    setEditGoNumber(e.target.value)
+                    if (e.target.value.trim()) setEditGoError(false)
+                  }}
+                  aria-invalid={editGoError ? "true" : undefined}
+                />
+                {editGoError && (
+                  <FieldError>U.O. Number is required.</FieldError>
+                )}
+              </Field>
+
+              <Field data-invalid={editGoDateError ? "true" : undefined}>
+                <FieldLabel htmlFor="editGoDate">Order Issue Date</FieldLabel>
+                <DatePicker
+                  id="editGoDate"
+                  value={editGoDate}
+                  onChange={(val) => {
+                    setEditGoDate(val)
+                    setEditGoDateError(false)
+                  }}
+                />
+                {editGoDateError && (
+                  <FieldError>Order Issue Date is required.</FieldError>
+                )}
+              </Field>
+            </FieldGroup>
+
+            <DialogFooter className="mt-2 flex items-center justify-end gap-2">
+              <DialogClose
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setEditingContract(null)}
+                  >
+                    Cancel
+                  </Button>
+                }
+              />
+              <Button type="submit">
+                <RiSave2Line data-icon="inline-start" />
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
