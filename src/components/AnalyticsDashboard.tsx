@@ -3,7 +3,6 @@ import { useMguDb } from "@/lib/db"
 import type { JobCategory } from "@/lib/types"
 import {
   getBillingCycleDates,
-  formatDateKey,
   formatIndianRupees,
 } from "@/lib/payrollUtils"
 import {
@@ -109,15 +108,13 @@ export const AnalyticsDashboard: React.FC = () => {
 
   const cycleDateRangeStr = useMemo(() => {
     if (billingCycleDates.length === 0) return ""
-    const startStr = new Date(
-      formatDateKey(billingCycleDates[0])
-    ).toLocaleDateString("en-GB", {
+    const startStr = billingCycleDates[0].toLocaleDateString("en-GB", {
       day: "numeric",
       month: "short",
     })
-    const endStr = new Date(
-      formatDateKey(billingCycleDates[billingCycleDates.length - 1])
-    ).toLocaleDateString("en-GB", {
+    const endStr = billingCycleDates[
+      billingCycleDates.length - 1
+    ].toLocaleDateString("en-GB", {
       day: "numeric",
       month: "short",
       year: "numeric",

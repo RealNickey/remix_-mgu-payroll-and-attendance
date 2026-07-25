@@ -686,15 +686,12 @@ export const ContractManagement = ({
                           const isOrphan = empInfo.name === "Unknown Employee"
 
                           // Format display dates
-                          const startDisplay = new Date(
-                            c.startDate
-                          ).toLocaleDateString("en-GB")
-                          const endDisplay = new Date(
-                            c.endDate
-                          ).toLocaleDateString("en-GB")
-                          const goDateDisplay = new Date(
-                            c.goDate
-                          ).toLocaleDateString("en-GB")
+                          const startDisplay =
+                            parseLocalDate(c.startDate)?.toLocaleDateString("en-GB") ?? ""
+                          const endDisplay =
+                            parseLocalDate(c.endDate)?.toLocaleDateString("en-GB") ?? ""
+                          const goDateDisplay =
+                            parseLocalDate(c.goDate)?.toLocaleDateString("en-GB") ?? ""
 
                           return (
                             <TableRow key={c.id} className="group/row">
