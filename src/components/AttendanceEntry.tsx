@@ -543,12 +543,14 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
             <div className="flex items-center gap-1.5 rounded-full border border-border/50 bg-muted/60 px-3 py-1.5 font-mono text-[11px] text-muted-foreground">
               <RiCalendarLine className="size-3.5 shrink-0" />
               <span>
-                {new Date(cycleStartDateStr).toLocaleDateString("en-GB", {
+                {billingCycleDates[0].toLocaleDateString("en-GB", {
                   day: "2-digit",
                   month: "short",
                 })}
                 &nbsp;→&nbsp;
-                {new Date(cycleEndDateStr).toLocaleDateString("en-GB", {
+                {billingCycleDates[
+                  billingCycleDates.length - 1
+                ].toLocaleDateString("en-GB", {
                   day: "2-digit",
                   month: "short",
                   year: "numeric",

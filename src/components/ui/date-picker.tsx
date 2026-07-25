@@ -26,11 +26,12 @@ export function DatePicker({
   id,
   disabled,
 }: DatePickerProps) {
-  // Convert "YYYY-MM-DD" string to Date object safely
+  // Convert "YYYY-MM-DD" string to local Date object safely
   const selectedDate = React.useMemo(() => {
     if (!value) return undefined
-    const date = new Date(value)
-    return isNaN(date.getTime()) ? undefined : date
+    const parts = value.split("-").map(Number)
+    if (parts.length !== 3 || parts.some((p) => isNaN(p))) return undefined
+    return new Date(parts[0], parts[1] - 1, parts[2])
   }, [value])
 
   const handleSelect = (date: Date | undefined) => {

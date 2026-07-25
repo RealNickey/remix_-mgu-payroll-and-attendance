@@ -66,6 +66,13 @@ export function computeEndDate(startDateStr: string): string {
   return `${y}-${m}-${d}`
 }
 
+export function parseLocalDate(dateStr: string): Date | undefined {
+  if (!dateStr) return undefined
+  const parts = dateStr.split("-").map(Number)
+  if (parts.length !== 3 || parts.some((p) => isNaN(p))) return undefined
+  return new Date(parts[0], parts[1] - 1, parts[2])
+}
+
 export function formatDateKey(date: Date): string {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, "0")

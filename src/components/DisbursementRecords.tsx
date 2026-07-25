@@ -2,7 +2,6 @@ import React, { useState, useMemo } from "react"
 import { useMguDb } from "@/lib/db"
 import {
   getBillingCycleDates,
-  formatDateKey,
   formatIndianRupees,
 } from "@/lib/payrollUtils"
 import {
@@ -117,20 +116,17 @@ export const DisbursementRecords: React.FC = () => {
 
   const cycleStartStr = useMemo(() => {
     if (billingCycleDates.length === 0) return ""
-    return new Date(formatDateKey(billingCycleDates[0])).toLocaleDateString(
-      "en-GB",
-      {
-        day: "numeric",
-        month: "long",
-      }
-    )
+    return billingCycleDates[0].toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+    })
   }, [billingCycleDates])
 
   const cycleEndStr = useMemo(() => {
     if (billingCycleDates.length === 0) return ""
-    return new Date(
-      formatDateKey(billingCycleDates[billingCycleDates.length - 1])
-    ).toLocaleDateString("en-GB", {
+    return billingCycleDates[
+      billingCycleDates.length - 1
+    ].toLocaleDateString("en-GB", {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -278,12 +274,11 @@ export const DisbursementRecords: React.FC = () => {
       return
     }
     try {
-      const cycleStartStrFormatted = new Date(
-        formatDateKey(billingCycleDates[0])
-      ).toLocaleDateString("en-GB")
-      const cycleEndStrFormatted = new Date(
-        formatDateKey(billingCycleDates[billingCycleDates.length - 1])
-      ).toLocaleDateString("en-GB")
+      const cycleStartStrFormatted =
+        billingCycleDates[0].toLocaleDateString("en-GB")
+      const cycleEndStrFormatted = billingCycleDates[
+        billingCycleDates.length - 1
+      ].toLocaleDateString("en-GB")
       generateSummaryReport(
         dataForReports,
         monthLabel,
@@ -305,12 +300,11 @@ export const DisbursementRecords: React.FC = () => {
       return
     }
     try {
-      const cycleStartStrFormatted = new Date(
-        formatDateKey(billingCycleDates[0])
-      ).toLocaleDateString("en-GB")
-      const cycleEndStrFormatted = new Date(
-        formatDateKey(billingCycleDates[billingCycleDates.length - 1])
-      ).toLocaleDateString("en-GB")
+      const cycleStartStrFormatted =
+        billingCycleDates[0].toLocaleDateString("en-GB")
+      const cycleEndStrFormatted = billingCycleDates[
+        billingCycleDates.length - 1
+      ].toLocaleDateString("en-GB")
       const result = generateSummaryReport(
         dataForReports,
         monthLabel,

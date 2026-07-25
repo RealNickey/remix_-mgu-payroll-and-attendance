@@ -665,3 +665,120 @@ describe("9. Contract Validation Business Rules", () => {
   })
 })
 
+// -----------------------------------------------------------------------------
+// 10. CONTRACT EDIT BUSINESS LOGIC TESTS
+// -----------------------------------------------------------------------------
+describe("10. Contract Edit Business Rules", () => {
+  function validateUpdateContract(
+    allContracts: Contract[],
+    editingId: string,
+    updatedFields: Partial<Omit<Contract, "id">>
+  ): { success: boolean; error?: string } {
+    const existingContract = allContracts.find((c) => c.id === editingId)
+    if (!existingContract) {
+      return { success: false, error: "Contract not found." }
+    }
+
+    const employeeId = updatedFields.employeeId ?? existingContract.employeeId
+    const startDate = updatedFields.startDate ?? existingContract.startDate
+    const endDate = updatedFields.endDate ?? existingContract.endDate
+
+    const duration = getContractDurationDays(startDate, endDate)
+    if (duration > 90) {
+      return {
+        success: false,
+        error: "Contract duration exceeds maximum period of 90 days.",
+      }
+    }
+    if (duration < 1) {
+      return {
+        success: false,
+        error: "Contract end date must be on or after start date.",
+      }
+    }
+
+    const otherEmpContracts = allContracts.filter(
+      (c) => c.employeeId === employeeId && c.id !== editingId
+    )
+    for (const c of otherEmpContracts) {
+      if (doIntervalsOverlap(c.startDate, c.endDate, startDate, endDate)) {
+        return {
+          success: false,
+          error: "Contract dates overlap with an existing contract.",
+        }
+      }
+      if (c.endDate < startDate) {
+        const gap = validateConsecutiveContractsGap(c.endDate, startDate)
+        if (!gap.isValid) {
+          return {
+            success: false,
+            error: "Must have at least 1 full-day gap between contracts.",
+          }
+        }
+      }
+      if (endDate < c.startDate) {
+        const gap = validateConsecutiveContractsGap(endDate, c.startDate)
+        if (!gap.isValid) {
+          return {
+            success: false,
+            error: "Must have at least 1 full-day gap between contracts.",
+          }
+        }
+      }
+    }
+    return { success: true }
+  }
+
+  const c1: Contract = {
+    id: "c1",
+    employeeId: "e1",
+    startDate: "2026-01-01",
+    endDate: "2026-03-31",
+    goNumber: "GO/1",
+    goDate: "2025-12-30",
+  }
+
+  const c2: Contract = {
+    id: "c2",
+    employeeId: "e1",
+    startDate: "2026-04-02",
+    endDate: "2026-06-30",
+    goNumber: "GO/2",
+    goDate: "2026-03-30",
+  }
+
+  it("CE-VAL-001: Valid update of contract dates within 90 days is accepted", () => {
+    const res = validateUpdateContract([c1, c2], "c1", {
+      startDate: "2026-01-05",
+      endDate: "2026-03-31",
+    })
+    expect(res.success).toBe(true)
+  })
+
+  it("CE-VAL-002: Updating contract's own dates does not trigger self-overlap error", () => {
+    const res = validateUpdateContract([c1], "c1", {
+      startDate: "2026-01-01",
+      endDate: "2026-03-30",
+    })
+    expect(res.success).toBe(true)
+  })
+
+  it("CE-VAL-003: Updating contract dates to overlap with another contract of same employee is rejected", () => {
+    const res = validateUpdateContract([c1, c2], "c1", {
+      startDate: "2026-01-10",
+      endDate: "2026-04-03",
+    })
+    expect(res.success).toBe(false)
+    expect(res.error).toContain("overlap")
+  })
+
+  it("CE-VAL-004: Updating contract duration to exceed 90 days is rejected", () => {
+    const res = validateUpdateContract([c1], "c1", {
+      startDate: "2026-01-01",
+      endDate: "2026-04-15",
+    })
+    expect(res.success).toBe(false)
+    expect(res.error).toContain("exceeds maximum period of 90 days")
+  })
+})
+
