@@ -114,6 +114,30 @@ export function generateSummaryReport(
     },
   })
 
+  // Signatories Footer Section
+  const tableBottom = (doc as any).lastAutoTable.finalY || 120
+  const pageHeight = doc.internal.pageSize.height
+  const sigY = Math.max(tableBottom + 25, pageHeight - 20)
+  const usableWidth = pageWidth - margin * 2
+  const colWidth = usableWidth / 4
+
+  doc.setFont("Helvetica", "normal")
+  doc.setFontSize(9)
+  doc.setTextColor(30, 41, 59)
+
+  const signatories = [
+    { title: "Assistant", x: margin + colWidth * 0.5 },
+    { title: "Section Officer", x: margin + colWidth * 1.5 },
+    { title: "Assistant Registrar", x: margin + colWidth * 2.5 },
+    { title: "Estate Officer", x: margin + colWidth * 3.5 },
+  ]
+
+  signatories.forEach((sig) => {
+    doc.setDrawColor(148, 163, 184)
+    doc.line(sig.x - 18, sigY - 5, sig.x + 18, sigY - 5)
+    doc.text(sig.title, sig.x, sigY, { align: "center" })
+  })
+
   // Download trigger
   const filename = `Disbursement_Summary_${monthName}_${year}.pdf`
   if (asPreview) {
@@ -463,10 +487,61 @@ export function generateEmployeeReceipt(
   doc.text(`Order Issue Date: ${goDateFormatted}`, pageWidth - margin - 120, 40)
 
   // 3. Grid Table
-  // Headers: "Session", "1", "2", ... "31"
-  const colHeaders = ["Session"]
-  for (let i = 1; i <= 31; i++) {
-    colHeaders.push(String(i))
+  const shortMonths = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "June",
+    "July",
+    "Aug",
+    "Sept",
+    "Oct",
+    "Nov",
+    "Dec",
+  ]
+
+  // Group dates by month segments
+  const monthSegments: { monthName: string; count: number }[] = []
+  billingCycleDates.forEach((d) => {
+    const mName = shortMonths[d.getMonth()]
+    if (
+      monthSegments.length === 0 ||
+      monthSegments[monthSegments.length - 1].monthName !== mName
+    ) {
+      monthSegments.push({ monthName: mName, count: 1 })
+    } else {
+      monthSegments[monthSegments.length - 1].count++
+    }
+  })
+
+  // Row 0: Month header row
+  const monthHeaderRow: any[] = [{ content: "Month", colSpan: 1 }]
+  let totalCoveredCols = 0
+  monthSegments.forEach((seg) => {
+    monthHeaderRow.push({
+      content: seg.monthName,
+      colSpan: seg.count,
+      styles: { halign: "center", fontStyle: "bold" },
+    })
+    totalCoveredCols += seg.count
+  })
+  if (totalCoveredCols < 31) {
+    monthHeaderRow.push({
+      content: "",
+      colSpan: 31 - totalCoveredCols,
+    })
+  }
+
+  // Row 1: Session / Day numbers
+  const dayHeaderRow: any[] = ["Session"]
+  for (let i = 0; i < 31; i++) {
+    if (i < billingCycleDates.length) {
+      dayHeaderRow.push(String(billingCycleDates[i].getDate()))
+    } else {
+      dayHeaderRow.push("")
+    }
   }
 
   // Row Data for FN and AN
@@ -487,7 +562,7 @@ export function generateEmployeeReceipt(
 
   autoTable(doc, {
     startY: 46,
-    head: [colHeaders],
+    head: [monthHeaderRow, dayHeaderRow],
     body: [fnRow, anRow],
     theme: "grid",
     headStyles: {
@@ -854,23 +929,24 @@ export function generateMonthlyAttendanceSheet(
   let cycleEndMonth = ""
   let cycleEndDay = ""
 
+  const shortMonths = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "June",
+    "July",
+    "Aug",
+    "Sept",
+    "Oct",
+    "Nov",
+    "Dec",
+  ]
+
   if (billingCycleDates.length > 0) {
     const firstDate = billingCycleDates[0]
     const lastDate = billingCycleDates[billingCycleDates.length - 1]
-    const shortMonths = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "June",
-      "July",
-      "Aug",
-      "Sept",
-      "Oct",
-      "Nov",
-      "Dec",
-    ]
     cycleStartMonth = shortMonths[firstDate.getMonth()]
     cycleStartDay = String(firstDate.getDate())
     cycleEndMonth = shortMonths[lastDate.getMonth()]
@@ -902,19 +978,52 @@ export function generateMonthlyAttendanceSheet(
   })
 
   // 2. TABLE STRUCTURE
-  // 33 Columns: Col 0: Name, Col 1..31: Day numbers, Col 32: Total count (blank header)
-  const headers = ["Name"]
+  // Group dates by month segments
+  const gridMonthSegments: { monthName: string; count: number }[] = []
+  billingCycleDates.forEach((d) => {
+    const mName = shortMonths[d.getMonth()]
+    if (
+      gridMonthSegments.length === 0 ||
+      gridMonthSegments[gridMonthSegments.length - 1].monthName !== mName
+    ) {
+      gridMonthSegments.push({ monthName: mName, count: 1 })
+    } else {
+      gridMonthSegments[gridMonthSegments.length - 1].count++
+    }
+  })
 
-  // Fill up to 31 date columns
+  // Header Row 0: Month labels
+  const gridMonthHeaderRow: any[] = [{ content: "Month", colSpan: 1 }]
+  let gridCoveredCols = 0
+  gridMonthSegments.forEach((seg) => {
+    gridMonthHeaderRow.push({
+      content: seg.monthName,
+      colSpan: seg.count,
+      styles: { halign: "center", fontStyle: "bold" },
+    })
+    gridCoveredCols += seg.count
+  })
+  if (gridCoveredCols < 31) {
+    gridMonthHeaderRow.push({
+      content: "",
+      colSpan: 31 - gridCoveredCols,
+    })
+  }
+  gridMonthHeaderRow.push({ content: "", colSpan: 1 }) // Column 33 Total count
+
+  // Header Row 1: Day numbers
+  const gridDayHeaderRow: any[] = ["Name"]
   for (let i = 0; i < 31; i++) {
     if (i < billingCycleDates.length) {
       const dayNum = billingCycleDates[i].getDate()
-      headers.push(String(dayNum))
+      gridDayHeaderRow.push(String(dayNum))
     } else {
-      headers.push("")
+      gridDayHeaderRow.push("")
     }
   }
-  headers.push("") // Blank header for Column 33 (Total count)
+  gridDayHeaderRow.push("") // Blank header for Column 33 (Total count)
+
+  const headers = [gridMonthHeaderRow, gridDayHeaderRow]
 
   // Filter payroll rows by category if specified, otherwise include all rows
   const categoryFilteredRows = categoryName
@@ -1016,7 +1125,7 @@ export function generateMonthlyAttendanceSheet(
 
   autoTable(doc, {
     startY: 18,
-    head: [headers],
+    head: headers,
     body: bodyRows,
     theme: "grid",
     headStyles: {

@@ -55,6 +55,7 @@ interface MguDbContextType {
   ) => void
   batchMarkWeekdays: (employeeId: string, dates: Date[]) => void
   batchMarkAllPresent: (employeeId: string, dates: Date[]) => void
+  batchMarkOtAll: (employeeId: string, dates: Date[]) => void
   batchClearAll: (employeeId: string, dates: Date[]) => void
   saveSettings: (newSettings: WageSettings) => void
   calculatePayroll: (year: number, month: number) => PayrollRow[]
@@ -381,6 +382,11 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
       ...recordUpdate,
     }
 
+    // If both FN and AN are absent, OT cannot be active and is unselected automatically
+    if (!updatedRecord.fn && !updatedRecord.an) {
+      updatedRecord.ot = false
+    }
+
     const updatedAttendance = {
       ...attendance,
       [employeeId]: {
@@ -446,6 +452,35 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
           ...currentRecord,
           fn: true,
           an: true,
+        }
+      }
+    })
+
+    saveAttendance({
+      ...attendance,
+      [employeeId]: employeeAttendance,
+    })
+  }
+
+  const batchMarkOtAll = (employeeId: string, dates: Date[]) => {
+    const employeeAttendance = { ...(attendance[employeeId] || {}) }
+
+    dates.forEach((date) => {
+      const dateStr = formatDateKey(date)
+      const isSunday = date.getDay() === 0
+      if (!isSunday && isDateCoveredByContract(contracts, employeeId, dateStr)) {
+        const currentRecord = employeeAttendance[dateStr] || {
+          fn: false,
+          an: false,
+          ot: false,
+          holiday: false,
+        }
+        // OT is only possible if fn or an is true
+        if (currentRecord.fn || currentRecord.an) {
+          employeeAttendance[dateStr] = {
+            ...currentRecord,
+            ot: true,
+          }
         }
       }
     })
@@ -607,6 +642,7 @@ export const MguDbProvider = ({ children }: { children: ReactNode }) => {
         updateAttendance,
         batchMarkWeekdays,
         batchMarkAllPresent,
+        batchMarkOtAll,
         batchClearAll,
         saveSettings,
         calculatePayroll,

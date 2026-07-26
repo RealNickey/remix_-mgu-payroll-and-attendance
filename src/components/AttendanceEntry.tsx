@@ -118,6 +118,7 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
     updateAttendance,
     batchMarkWeekdays,
     batchMarkAllPresent,
+    batchMarkOtAll,
     batchClearAll,
     saveAttendance,
     settings,
@@ -327,6 +328,10 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
     (dateStr: string, flag: "fn" | "an" | "ot" | "holiday") => {
       if (!selectedEmployeeId) return
       const current = getAttendanceRecord(dateStr)
+      if (flag === "ot" && !current.fn && !current.an && !current.ot) {
+        toast.error("OT cannot be marked when FN and AN are absent.")
+        return
+      }
       updateAttendance(selectedEmployeeId, dateStr, { [flag]: !current[flag] })
     },
     [selectedEmployeeId, getAttendanceRecord, updateAttendance]
@@ -347,6 +352,15 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
     const prev = JSON.parse(JSON.stringify(attendance))
     batchMarkAllPresent(selectedEmployeeId, billingCycleDates)
     toast.success("Marked Monday–Saturday dates as present.", {
+      action: { label: "Undo", onClick: () => saveAttendance(prev) },
+    })
+  }
+
+  const handleBatchMarkOtAll = () => {
+    if (!selectedEmployeeId) return
+    const prev = JSON.parse(JSON.stringify(attendance))
+    batchMarkOtAll(selectedEmployeeId, billingCycleDates)
+    toast.success("Marked OT for all present days in this cycle.", {
       action: { label: "Undo", onClick: () => saveAttendance(prev) },
     })
   }
@@ -956,6 +970,26 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
                           </TooltipContent>
                         </Tooltip>
 
+                        {selectedEmployee.category !== "Gardeners" && (
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  size="xs"
+                                  variant="outline"
+                                  onClick={handleBatchMarkOtAll}
+                                />
+                              }
+                            >
+                              <RiTimeLine data-icon="inline-start" />
+                              OT All
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Mark OT for present days in cycle (Excludes Sundays)
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+
                         <Tooltip>
                           <TooltipTrigger
                             render={
@@ -1166,6 +1200,7 @@ export const AttendanceEntry: React.FC<AttendanceEntryProps> = ({
                                   <Toggle
                                     size="sm"
                                     variant="outline"
+                                    disabled={!record.fn && !record.an}
                                     pressed={record.ot}
                                     onPressedChange={() =>
                                       handleToggle(dateStr, "ot")
