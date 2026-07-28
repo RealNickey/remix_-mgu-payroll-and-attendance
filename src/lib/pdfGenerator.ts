@@ -146,6 +146,170 @@ export function generateSummaryReport(
   doc.save(filename)
 }
 
+export function generateDetailedSummaryReport(
+  payroll: PayrollRow[],
+  monthName: string,
+  year: number,
+  cycleStartStr: string,
+  cycleEndStr: string,
+  sectionName?: string,
+  asPreview?: boolean
+): { url: string; filename: string } | void {
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4",
+  })
+
+  // Margins & Dimensions for A4 Landscape (297mm x 210mm)
+  const pageWidth = doc.internal.pageSize.width
+  const pageHeight = doc.internal.pageSize.height
+  const margin = 14
+
+  // Header / Title Block
+  doc.setFont("Helvetica", "bold")
+  doc.setFontSize(16)
+  doc.setTextColor(30, 41, 59) // Slate-800
+  doc.text("MAHATMA GANDHI UNIVERSITY", pageWidth / 2, 20, { align: "center" })
+
+  doc.setFont("Helvetica", "normal")
+  doc.setFontSize(12)
+  doc.setTextColor(71, 85, 105) // Slate-600
+  const displaySection = ((sectionName || "Ad.B5") + " SECTION").toUpperCase()
+  doc.text(displaySection, pageWidth / 2, 26, { align: "center" })
+
+  doc.setFont("Helvetica", "bold")
+  doc.setFontSize(14)
+  doc.setTextColor(15, 23, 42) // Slate-900
+  doc.text(`Detailed Disbursement Summary — ${monthName} ${year}`, pageWidth / 2, 34, {
+    align: "center",
+  })
+
+  // Sub-details
+  doc.setFont("Helvetica", "normal")
+  doc.setFontSize(10)
+  doc.setTextColor(100)
+  doc.text(`Billing Cycle: ${cycleStartStr} to ${cycleEndStr}`, margin, 44)
+  doc.text(
+    `Report Date: ${new Date().toLocaleDateString("en-GB")}`,
+    pageWidth - margin,
+    44,
+    { align: "right" }
+  )
+
+  // Divider line
+  doc.setDrawColor(203, 213, 225) // Slate-300
+  doc.setLineWidth(0.5)
+  doc.line(margin, 46, pageWidth - margin, 46)
+
+  // Table Setup
+  const tableData = payroll.map((row, index) => [
+    index + 1,
+    row.name,
+    row.category,
+    row.regularDays.toFixed(1),
+    row.otDays,
+    formatIndianRupees(row.regularPay),
+    formatIndianRupees(row.otPay),
+    formatIndianRupees(row.totalPay),
+  ])
+
+  // Aggregates for Grand Total row
+  const grandTotalRegularDays = payroll.reduce((sum, row) => sum + row.regularDays, 0)
+  const grandTotalOtDays = payroll.reduce((sum, row) => sum + row.otDays, 0)
+  const grandTotalRegularPay = payroll.reduce((sum, row) => sum + row.regularPay, 0)
+  const grandTotalOtPay = payroll.reduce((sum, row) => sum + row.otPay, 0)
+  const grandTotalPayable = payroll.reduce((sum, row) => sum + row.totalPay, 0)
+
+  tableData.push([
+    "",
+    "Grand Total",
+    "",
+    grandTotalRegularDays.toFixed(1),
+    grandTotalOtDays,
+    formatIndianRupees(grandTotalRegularPay),
+    formatIndianRupees(grandTotalOtPay),
+    formatIndianRupees(grandTotalPayable),
+  ])
+
+  autoTable(doc, {
+    startY: 50,
+    head: [
+      [
+        "Sl. No.",
+        "Employee Name",
+        "Category",
+        "Regular Days",
+        "OT Days",
+        "Regular Pay",
+        "OT Pay",
+        "Total Payable",
+      ],
+    ],
+    body: tableData,
+    theme: "striped",
+    headStyles: {
+      fillColor: [15, 23, 42], // Dark Slate
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      fontSize: 10,
+    },
+    bodyStyles: {
+      fontSize: 9,
+      textColor: [51, 65, 85],
+    },
+    columnStyles: {
+      0: { cellWidth: 16, halign: "center" },
+      1: { cellWidth: 55 },
+      2: { cellWidth: 35 },
+      3: { cellWidth: 28, halign: "center" },
+      4: { cellWidth: 24, halign: "center" },
+      5: { cellWidth: 36, halign: "right" },
+      6: { cellWidth: 36, halign: "right" },
+      7: { cellWidth: 39, halign: "right" },
+    },
+    margin: { left: margin, right: margin },
+    didParseCell: (data) => {
+      // Style grand total row
+      if (data.row.index === tableData.length - 1) {
+        data.cell.styles.fontStyle = "bold"
+        data.cell.styles.fillColor = [241, 245, 249] // Slate-100
+        data.cell.styles.textColor = [15, 23, 42]
+      }
+    },
+  })
+
+  // Signatories Footer Section
+  const tableBottom = (doc as any).lastAutoTable.finalY || 120
+  const sigY = Math.max(tableBottom + 25, pageHeight - 20)
+  const usableWidth = pageWidth - margin * 2
+  const colWidth = usableWidth / 4
+
+  doc.setFont("Helvetica", "normal")
+  doc.setFontSize(9)
+  doc.setTextColor(30, 41, 59)
+
+  const signatories = [
+    { title: "Assistant", x: margin + colWidth * 0.5 },
+    { title: "Section Officer", x: margin + colWidth * 1.5 },
+    { title: "Assistant Registrar", x: margin + colWidth * 2.5 },
+    { title: "Estate Officer", x: margin + colWidth * 3.5 },
+  ]
+
+  signatories.forEach((sig) => {
+    doc.setDrawColor(148, 163, 184)
+    doc.line(sig.x - 22, sigY - 5, sig.x + 22, sigY - 5)
+    doc.text(sig.title, sig.x, sigY, { align: "center" })
+  })
+
+  // Download trigger
+  const filename = `Detailed_Disbursement_Summary_${monthName}_${year}.pdf`
+  if (asPreview) {
+    return { url: URL.createObjectURL(doc.output("blob")), filename }
+  }
+  doc.save(filename)
+}
+
 export function generateAttendanceReport(
   payroll: PayrollRow[],
   monthName: string,

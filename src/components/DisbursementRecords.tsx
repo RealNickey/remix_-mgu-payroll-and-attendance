@@ -6,6 +6,7 @@ import {
 } from "@/lib/payrollUtils"
 import {
   generateSummaryReport,
+  generateDetailedSummaryReport,
   generateAttendanceReport,
   generateEmployeeReceipt,
   generateMonthlyAttendanceSheet,
@@ -324,6 +325,65 @@ export const DisbursementRecords: React.FC = () => {
     } catch (e) {
       console.error(e)
       toast.error("Failed to preview PDF summary report.")
+    }
+  }
+
+  const handleDownloadDetailedSummary = () => {
+    if (dataForReports.length === 0) {
+      toast.error("No records match the current filters.")
+      return
+    }
+    try {
+      const cycleStartStrFormatted =
+        billingCycleDates[0].toLocaleDateString("en-GB")
+      const cycleEndStrFormatted = billingCycleDates[
+        billingCycleDates.length - 1
+      ].toLocaleDateString("en-GB")
+      generateDetailedSummaryReport(
+        dataForReports,
+        monthLabel,
+        selectedYear,
+        cycleStartStrFormatted,
+        cycleEndStrFormatted,
+        settings.section
+      )
+      toast.success("Detailed disbursement summary downloaded.")
+    } catch (e) {
+      console.error(e)
+      toast.error("Failed to generate PDF detailed summary report.")
+    }
+  }
+
+  const handlePreviewDetailedSummary = () => {
+    if (dataForReports.length === 0) {
+      toast.error("No records match the current filters.")
+      return
+    }
+    try {
+      const cycleStartStrFormatted =
+        billingCycleDates[0].toLocaleDateString("en-GB")
+      const cycleEndStrFormatted = billingCycleDates[
+        billingCycleDates.length - 1
+      ].toLocaleDateString("en-GB")
+      const result = generateDetailedSummaryReport(
+        dataForReports,
+        monthLabel,
+        selectedYear,
+        cycleStartStrFormatted,
+        cycleEndStrFormatted,
+        settings.section,
+        true
+      )
+      if (result) {
+        setPreviewPdf({
+          url: result.url,
+          filename: result.filename,
+          title: `Detailed Disbursement Summary — ${monthLabel} ${selectedYear}`,
+        })
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error("Failed to preview PDF detailed summary report.")
     }
   }
 
@@ -858,6 +918,25 @@ export const DisbursementRecords: React.FC = () => {
                   size="sm"
                   className="cursor-pointer rounded-l-none px-2.5"
                   title="Preview Summary Report"
+                >
+                  <RiEyeLine className="size-4" />
+                </Button>
+              </div>
+
+              <div className="inline-flex rounded-lg shadow-sm">
+                <Button
+                  onClick={handleDownloadDetailedSummary}
+                  size="sm"
+                  className="cursor-pointer rounded-r-none border-r border-primary-foreground/10 bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
+                  <RiFileDownloadLine className="mr-1.5 size-4" />
+                  Detailed Summary
+                </Button>
+                <Button
+                  onClick={handlePreviewDetailedSummary}
+                  size="sm"
+                  className="cursor-pointer rounded-l-none px-2.5 bg-indigo-600 hover:bg-indigo-700 text-white"
+                  title="Preview Detailed Summary Report"
                 >
                   <RiEyeLine className="size-4" />
                 </Button>
